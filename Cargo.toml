@@ -1,0 +1,7 @@
+[package]
+name = "dilib"
+version = "0.1.0"
+authors = ["Freddy L P.B"]
+edition = "2018"
+
+[dependencies]
