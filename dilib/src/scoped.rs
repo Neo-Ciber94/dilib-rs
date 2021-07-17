@@ -5,7 +5,7 @@ use std::ptr::NonNull;
 #[derive(Debug, Clone)]
 pub struct Scoped {
     type_id: TypeId,
-    inner: Inner,
+    inner: BoxClosure,
 }
 
 impl Scoped {
@@ -14,7 +14,7 @@ impl Scoped {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        let inner = Inner::from_factory(f);
+        let inner = BoxClosure::from_fn(f);
         let type_id = TypeId::of::<T>();
         Scoped { type_id, inner }
     }
@@ -24,7 +24,7 @@ impl Scoped {
         T: 'static,
         F: Fn(&Container) -> T + 'static,
     {
-        let inner = Inner::from_injectable(f);
+        let inner = BoxClosure::from_fn_arg(f);
         let type_id = TypeId::of::<T>();
         Scoped { type_id, inner }
     }
@@ -34,7 +34,7 @@ impl Scoped {
             None
         } else {
             unsafe {
-                let f = self.inner.as_factory()?;
+                let f = self.inner.as_fn()?;
                 Some(f())
             }
         }
@@ -45,7 +45,7 @@ impl Scoped {
             None
         } else {
             unsafe {
-                let f = self.inner.as_injectable()?;
+                let f = self.inner.as_fn_arg()?;
                 Some(f(container))
             }
         }
@@ -53,67 +53,79 @@ impl Scoped {
 
     #[inline]
     pub fn is_factory(&self) -> bool {
-        self.inner.is_factory()
+        !self.inner.takes_args()
     }
 
     #[inline]
     pub fn is_injectable(&self) -> bool {
-        self.inner.is_injectable()
+        self.inner.takes_args()
     }
 }
 
+
 #[derive(Debug, Clone)]
-enum Inner {
-    Factory(NonNull<dyn Fn()>),
-    Injectable(NonNull<dyn Fn(&Container)>),
+enum BoxClosure {
+    Fn(NonNull<dyn Fn()>),
+    FnArg(NonNull<dyn Fn()>),
 }
 
-impl Inner {
-    pub fn from_factory<T, F>(f: F) -> Self
-    where
-        T: 'static,
-        F: Fn() -> T + 'static,
+impl BoxClosure {
+    pub fn from_fn<T, F>(f: F) -> Self
+        where
+            T: 'static,
+            F: Fn() -> T + 'static,
     {
         let raw = Box::leak(Box::new(f));
         let ptr = raw as *mut dyn Fn() -> T as _;
-        Inner::Factory(NonNull::new(ptr).unwrap())
+        BoxClosure::Fn(NonNull::new(ptr).unwrap())
     }
 
-    pub fn from_injectable<T, F>(f: F) -> Self
-    where
-        T: 'static,
-        F: Fn(&Container) -> T + 'static,
+    pub fn from_fn_arg<T, A, F>(f: F) -> Self
+        where
+            T: 'static,
+            A: 'static,
+            F: Fn(A) -> T + 'static,
     {
         let raw = Box::leak(Box::new(f));
-        let ptr = raw as *mut dyn Fn(&Container) -> T as _;
-        Inner::Injectable(NonNull::new(ptr).unwrap())
+        let ptr = raw as *mut dyn Fn(A) -> T as _;
+        BoxClosure::FnArg(NonNull::new(ptr).unwrap())
     }
 
-    pub unsafe fn as_factory<T>(&self) -> Option<&dyn Fn() -> T> {
+    pub unsafe fn as_fn<T>(&self) -> Option<&dyn Fn() -> T> {
         match self {
-            Inner::Injectable(_) => None,
-            Inner::Factory(f) => {
+            BoxClosure::FnArg(_) => None,
+            BoxClosure::Fn(f) => {
                 let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn() -> T;
                 Some(&*ptr)
             }
         }
     }
 
-    pub unsafe fn as_injectable<T>(&self) -> Option<&dyn Fn(&Container) -> T> {
+    pub unsafe fn as_fn_arg<T, Arg>(&self) -> Option<&dyn Fn(Arg) -> T> {
         match self {
-            Inner::Factory(_) => None,
-            Inner::Injectable(f) => {
-                let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn(&Container) -> T;
+            BoxClosure::Fn(_) => None,
+            BoxClosure::FnArg(f) => {
+                let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn(Arg) -> T;
                 Some(&*ptr)
             }
         }
     }
 
-    pub fn is_factory(&self) -> bool {
-        matches!(self, Inner::Factory(_))
+    pub fn takes_args(&self) -> bool {
+        matches!(self, BoxClosure::FnArg(_))
     }
+}
 
-    pub fn is_injectable(&self) -> bool {
-        matches!(self, Inner::Injectable(_))
+impl Drop for BoxClosure {
+    fn drop(&mut self) {
+        unsafe {
+            match self {
+                BoxClosure::FnArg(x) |
+                BoxClosure::Fn(x) => {
+                    let raw = x.as_ptr();
+                    let _ = Box::from_raw(raw);
+                }
+            }
+        }
     }
 }

@@ -151,7 +151,7 @@ impl<'a> Container<'a> {
             T: Send + Sync + 'static,
     {
         let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, ProviderKind::Scoped, name);
+        let key = InjectionKey::new(type_id, ProviderKind::Singleton, name);
 
         match self.get_provider(key)? {
             Provider::Scoped(_) => unreachable!(),
