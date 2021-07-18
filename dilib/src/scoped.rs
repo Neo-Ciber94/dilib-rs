@@ -33,9 +33,11 @@ impl Scoped {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
+            // SAFETY: Safe because check the return type is `T`
             unsafe {
                 let f = self.inner.as_fn()?;
-                Some(f())
+                let ret : T = f();
+                Some(ret)
             }
         }
     }
@@ -44,9 +46,11 @@ impl Scoped {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
+            // SAFETY: Safe because we check the return type is `T` and take an arg `&Container`
             unsafe {
-                let f = self.inner.as_fn_arg()?;
-                Some(f(container))
+                let f = self.inner.as_fn_arg::<&Container, T>()?;
+                let ret : T = f(container);
+                Some(ret)
             }
         }
     }
@@ -95,16 +99,18 @@ impl BoxClosure {
         match self {
             BoxClosure::FnArg(_) => None,
             BoxClosure::Fn(f) => {
+                // Super unsafe, we don't know if we match the type `T`
                 let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn() -> T;
                 Some(&*ptr)
             }
         }
     }
 
-    pub unsafe fn as_fn_arg<T, Arg>(&self) -> Option<&dyn Fn(Arg) -> T> {
+    pub unsafe fn as_fn_arg<Arg, T>(&self) -> Option<&dyn Fn(Arg) -> T> {
         match self {
             BoxClosure::Fn(_) => None,
             BoxClosure::FnArg(f) => {
+                // Super unsafe, we don't know if we match the type `T` or `Arg`
                 let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn(Arg) -> T;
                 Some(&*ptr)
             }
