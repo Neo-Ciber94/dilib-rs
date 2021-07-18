@@ -50,11 +50,13 @@ fn get_target_constructor(_input: &DeriveInput) -> Option<TargetConstructor> {
 fn get_deps(fields: &Fields) -> Vec<Dependency> {
     let mut deps = Vec::new();
 
+    // todo: check for attributes for additional config
+
     match fields {
         Fields::Unit => deps,
         Fields::Named(fields_named) => {
             for f in &fields_named.named {
-                let field = TargetField::Named(f.ident.clone());
+                let field = TargetField::Named(f.ident.clone().unwrap());
                 let field_type = f.ty.clone();
                 let scope = Scope::Scoped;
                 let mut dependency = Dependency::new(field, field_type, scope);
@@ -65,8 +67,8 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
             deps
         },
         Fields::Unnamed(fields_unnamed) => {
-            for f in &fields_unnamed.named {
-                let field = TargetField::Named(f.ident.clone());
+            for (index, f) in fields_unnamed.unnamed.iter().enumerate() {
+                let field = TargetField::Unnamed(index);
                 let field_type = f.ty.clone();
                 let scope = Scope::Scoped;
                 let mut dependency = Dependency::new(field, field_type, scope);
