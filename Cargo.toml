@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "dilib",
+    "dilib-derive",
 
     # Internal
     "dev"
