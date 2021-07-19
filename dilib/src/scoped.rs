@@ -2,6 +2,7 @@ use crate::Container;
 use std::any::TypeId;
 use std::ptr::NonNull;
 
+/// Represents an `Scoped` provider which provide a new instance each time.
 #[derive(Debug, Clone)]
 pub struct Scoped {
     type_id: TypeId,
@@ -9,6 +10,7 @@ pub struct Scoped {
 }
 
 impl Scoped {
+    /// Constructs a `Scoped` from a factory function.
     pub fn from_factory<T, F>(f: F) -> Self
     where
         T: 'static,
@@ -19,6 +21,7 @@ impl Scoped {
         Scoped { type_id, inner }
     }
 
+    /// Constructs a `Scoped` from a `fn(&Container) -> T` function.
     pub fn from_injectable<T, F>(f: F) -> Self
     where
         T: 'static,
@@ -29,6 +32,11 @@ impl Scoped {
         Scoped { type_id, inner }
     }
 
+    /// Calls the inner function and returns the value.
+    ///
+    /// # Returns `None` if:
+    /// - The inner function is not in the form `fn() -> T`.
+    /// - The given type `T` don't match the return type of the factory.
     pub fn call_factory<T: 'static>(&self) -> Option<T> {
         if TypeId::of::<T>() != self.type_id {
             None
@@ -42,6 +50,11 @@ impl Scoped {
         }
     }
 
+    /// Calls the inner function using the given `Container` and returns the value.
+    ///
+    /// # Returns `None` if:
+    /// - The inner function is not in the form `fn(&Container) -> T`.
+    /// - The given type `T` don't match the return type of the factory.
     pub fn call_injectable<T: 'static>(&self, container: &Container) -> Option<T> {
         if TypeId::of::<T>() != self.type_id {
             None
@@ -55,17 +68,18 @@ impl Scoped {
         }
     }
 
+    /// Returns `true` if the inner function is in the form `fn() -> T`.
     #[inline]
     pub fn is_factory(&self) -> bool {
         !self.inner.takes_args()
     }
 
+    /// Returns `true` if the inner function is in the form `fn(&Container) -> T`.
     #[inline]
     pub fn is_injectable(&self) -> bool {
         self.inner.takes_args()
     }
 }
-
 
 #[derive(Debug, Clone)]
 enum BoxClosure {
@@ -133,5 +147,48 @@ impl Drop for BoxClosure {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn call_factory_test() {
+        let f = Scoped::from_factory(|| 123_i32);
+        assert!(f.is_factory());
+
+        let value = f.call_factory::<i32>();
+        assert_eq!(value, Some(123_i32));
+    }
+
+    #[test]
+    fn call_injectable_test() {
+        let mut container = Container::new();
+        container.add_scoped(|| String::from("hello"));
+
+        let f = Scoped::from_injectable(|c| c.get_scoped::<String>().unwrap());
+        assert!(f.is_injectable());
+
+        let value = f.call_injectable::<String>(&container);
+        assert_eq!(value, Some("hello".to_string()));
+    }
+
+    #[test]
+    fn invalid_type_factory_test() {
+        let f = Scoped::from_factory(|| true);
+
+        assert!(f.is_factory());
+        assert!(f.call_factory::<i32>().is_none());
+    }
+
+    #[test]
+    fn invalid_type_injectable_test() {
+        let container = Container::new();
+        let f = Scoped::from_injectable(|_| 0.5_f32);
+
+        assert!(f.is_injectable());
+        assert!(f.call_injectable::<bool>(&container).is_none());
     }
 }
