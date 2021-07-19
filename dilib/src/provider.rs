@@ -21,14 +21,17 @@ pub enum Provider {
 }
 
 impl Provider {
+    /// Returns `true` if the provider is scoped.
     pub fn is_scoped(&self) -> bool {
         matches!(self, Provider::Scoped(_))
     }
 
+    /// Returns `true` if the provider is a singleton.
     pub fn is_singleton(&self) -> bool {
         matches!(self, Provider::Singleton(_))
     }
 
+    /// Returns the type of this provider.
     pub fn kind(&self) -> ProviderKind {
         match self {
             Provider::Scoped(_) => ProviderKind::Scoped,

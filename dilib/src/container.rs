@@ -16,6 +16,7 @@ pub struct Container<'a> {
 }
 
 impl<'a> Container<'a> {
+    /// Constructs a new `Container`.
     pub fn new() -> Self {
         Container {
             providers: Default::default(),
