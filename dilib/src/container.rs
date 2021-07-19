@@ -335,6 +335,37 @@ mod tests {
     }
 
     #[test]
+    fn remove_test() {
+        let mut container = Container::new();
+        assert_eq!(container.len(), 0);
+
+        container.add_scoped(|| true);
+        container.add_singleton(String::from("blue"));
+        container.add_scoped_with_name(Some("number"), || 200_i32);
+        container.add_singleton_with_name(Some("color"), String::from("red"));
+
+        assert_eq!(container.len(), 4);
+
+        assert!(container.remove(InjectionKey::of::<bool>(ProviderKind::Scoped)).is_some());
+
+        // Provider already removed
+        assert!(container.remove(InjectionKey::of::<bool>(ProviderKind::Scoped)).is_none());
+
+        assert_eq!(container.len(), 3);
+
+        // Provider is of incorrect kind
+        assert!(container.remove(InjectionKey::of::<String>(ProviderKind::Scoped)).is_none());
+
+        assert!(container.remove(InjectionKey::of::<String>(ProviderKind::Singleton)).is_some());
+
+        assert_eq!(container.len(), 2);
+
+        assert!(container.remove(InjectionKey::with_name::<i32>(ProviderKind::Scoped, "number")).is_some());
+        assert!(container.remove(InjectionKey::with_name::<String>(ProviderKind::Singleton, "color")).is_some());
+        assert_eq!(container.len(), 0);
+    }
+
+    #[test]
     fn clear_test() {
         let mut container = Container::new();
         assert_eq!(container.len(), 0);
