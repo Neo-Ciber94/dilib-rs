@@ -4,4 +4,8 @@ version = "0.1.0"
 authors = ["Freddy L."]
 edition = "2018"
 
+[features]
+derive = ["dilib-derive"]
+
 [dependencies]
+dilib-derive = { path = "../dilib-derive", optional = true }

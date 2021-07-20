@@ -12,3 +12,9 @@ pub use provider::*;
 
 mod scoped;
 pub use scoped::*;
+
+#[cfg(feature = "derive")]
+pub mod derive {
+    extern crate dilib_derive;
+    pub use dilib_derive::*;
+}

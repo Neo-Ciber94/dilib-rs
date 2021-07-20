@@ -10,6 +10,9 @@ dependencies = [
 [[package]]
 name = "dilib"
 version = "0.1.0"
+dependencies = [
+ "dilib-derive",
+]
 
 [[package]]
 name = "dilib-derive"
