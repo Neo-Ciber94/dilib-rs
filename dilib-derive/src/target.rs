@@ -1,8 +1,10 @@
 use crate::dependency::{Dependency, Scope, TargetField};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::quote;
-use syn::{Data, DeriveInput, Fields, Ident, Type, DataStruct};
+use quote::{quote, ToTokens};
+use syn::{
+    Data, DataStruct, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type,
+};
 
 pub struct InjectableTarget {
     target_type: Ident,
@@ -30,7 +32,7 @@ impl InjectableTarget {
             container,
             constructor,
             deps,
-            is_unit
+            is_unit,
         }
     }
 
@@ -56,7 +58,8 @@ impl InjectableTarget {
         let deps = self.deps.as_slice();
 
         let create_instance = if let Some(constructor) = &self.constructor {
-            let params = constructor.params
+            let params = constructor
+                .params
                 .iter()
                 .map(|s| Ident::new(s, Span::call_site()));
 
@@ -64,9 +67,7 @@ impl InjectableTarget {
             let constructor_name = Ident::new(&constructor.name, Span::call_site());
             quote! { #target_type :: #constructor_name ( #(#params)* )}
         } else {
-            let params = deps
-                .iter()
-                .map(|s| s.var_name());
+            let params = deps.iter().map(|s| s.var_name());
 
             // Type { params }
             quote! { #target_type { #(#params),* } }
@@ -105,7 +106,7 @@ fn get_target_constructor(_input: &DeriveInput) -> Option<TargetConstructor> {
 }
 
 fn get_container_identifier(struct_data: &DataStruct) -> Ident {
-    const CONTAINER_IDENT : &str = "container";
+    const CONTAINER_IDENT: &str = "container";
 
     match &struct_data.fields {
         Fields::Named(fields) => {
@@ -122,12 +123,12 @@ fn get_container_identifier(struct_data: &DataStruct) -> Ident {
                     container_name = format!("{}{}", container_name, matches);
                     matches += 1;
                 }
-             }
+            }
 
             Ident::new(container_name.as_str(), Span::call_site())
         }
         Fields::Unnamed(_) => Ident::new(CONTAINER_IDENT, Span::call_site()),
-        Fields::Unit => Ident::new("_", Span::call_site())
+        Fields::Unit => Ident::new("_", Span::call_site()),
     }
 }
 
@@ -142,8 +143,7 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
         Fields::Named(fields_named) => {
             for f in &fields_named.named {
                 let field = TargetField::Named(f.ident.clone().unwrap());
-                let field_type = f.ty.clone();
-                let scope = Scope::Scoped;
+                let (field_type, scope) = get_type_and_scope(&f.ty);
                 let dependency = Dependency::new(
                     field,
                     field_type,
@@ -159,8 +159,7 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
         Fields::Unnamed(fields_unnamed) => {
             for (index, f) in fields_unnamed.unnamed.iter().enumerate() {
                 let field = TargetField::Unnamed(index);
-                let field_type = f.ty.clone();
-                let scope = Scope::Scoped;
+                let (field_type, scope) = get_type_and_scope(&f.ty);
                 let dependency = Dependency::new(
                     field,
                     field_type,
@@ -175,3 +174,64 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
         }
     }
 }
+
+fn get_type_and_scope(ty: &Type) -> (Type, Scope) {
+    if let Some(generic) = get_singleton_type(ty) {
+        (generic, Scope::Singleton)
+    } else {
+        (ty.clone(), Scope::Scoped)
+    }
+}
+
+fn get_singleton_type(ty: &Type) -> Option<Type> {
+    match ty {
+        Type::Path(type_path) => {
+            // Is declared as <T as Trait>::Inner
+            if type_path.qself.is_some() {
+                return None;
+            }
+
+            // todo: We are not checking full paths like: dilib::Singleton<T>
+
+            let raw = type_path.path.to_token_stream().to_string();
+            let s = raw.split_ascii_whitespace().collect::<String>();
+
+            // SAFETY: A type path should have at least 1 element
+            let segment = type_path.path.segments.last().unwrap();
+            let ident = segment.ident.to_string();
+
+            // Is `Singleton<T>`
+            if ident == "Singleton" && !segment.arguments.is_empty() {
+                match &segment.arguments {
+                    PathArguments::AngleBracketed(bracketed) => {
+                        let generic_arg = bracketed.args.first().unwrap();
+                        if let GenericArgument::Type(Type::Path(generic_type)) = generic_arg {
+                            return Some(Type::Path(generic_type.clone()));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            // Is `Arc<Mutex<T>>`
+            if ident == "Arc" {
+                match &segment.arguments {
+                    PathArguments::AngleBracketed(bracket) => {
+                        let generic_arg = bracket.args.first().unwrap();
+                        if let GenericArgument::Type(Type::Path(generic)) = generic_arg {
+                            let inner = generic.path.segments.last().unwrap();
+                            if inner.ident.to_string() == "Mutex" {
+                                return Some(Type::Path(generic.clone()));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            None
+        }
+        _ => None,
+    }
+}
+
