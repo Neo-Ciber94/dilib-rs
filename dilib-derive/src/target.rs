@@ -1,22 +1,27 @@
-use crate::dependency::{Dependency, Scope, TargetField};
 use proc_macro::TokenStream;
+use std::str::FromStr;
+
+use mattro::MacroAttribute;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
 use syn::{
-    Data, DataStruct, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type,
+    Data, DataStruct, DeriveInput, Expr, ExprCall, Field, Fields, GenericArgument, Ident,
+    PathArguments, Type,
 };
+use syn::parse::Parse;
+use syn::punctuated::Punctuated;
+use syn::token::{Comma, Paren};
 
+use crate::constructor::{TargetConstructor, TargetConstructorTokens};
+use crate::dependency::{Dependency, Scope, TargetField};
+
+#[derive(Debug)]
 pub struct InjectableTarget {
     target_type: Ident,
     container: Ident,
     constructor: Option<TargetConstructor>,
     deps: Vec<Dependency>,
     is_unit: bool,
-}
-
-pub struct TargetConstructor {
-    name: String,
-    params: Vec<String>,
 }
 
 impl InjectableTarget {
@@ -59,13 +64,13 @@ impl InjectableTarget {
 
         let create_instance = if let Some(constructor) = &self.constructor {
             let params = constructor
-                .params
+                .args
                 .iter()
                 .map(|s| Ident::new(s, Span::call_site()));
 
             // Type :: constructor ( params )
             let constructor_name = Ident::new(&constructor.name, Span::call_site());
-            quote! { #target_type :: #constructor_name ( #(#params)* )}
+            quote! { #target_type :: #constructor_name ( #(#params),* )}
         } else {
             let params = deps.iter().map(|s| s.var_name());
 
@@ -100,8 +105,29 @@ pub fn parse_derive_injectable(input: DeriveInput) -> InjectableTarget {
     }
 }
 
-fn get_target_constructor(_input: &DeriveInput) -> Option<TargetConstructor> {
-    // todo
+// #[inject(constructor="new(param1, param2, ...)")]
+fn get_target_constructor(input: &DeriveInput) -> Option<TargetConstructor> {
+    let attributes = input
+        .attrs
+        .iter()
+        .cloned()
+        .map(|a| MacroAttribute::new(a).unwrap())
+        .filter(|a| a.path() == "inject")
+        .map(|a| a.into_name_values().unwrap())
+        .filter(|a| a.contains("constructor"))
+        .collect::<Vec<_>>();
+
+    if let Some(attr) = attributes.last() {
+        let value = attr.get("constructor").unwrap();
+        let token_string = value.to_string_literal().unwrap();
+        let tokens = proc_macro2::TokenStream::from_str(&token_string).unwrap();
+        if let Ok(result) = syn::parse2::<TargetConstructorTokens>(tokens) {
+            return Some(result.into_constructor())
+        }
+
+        panic!("invalid inject constructor: `{}`", token_string);
+    }
+
     None
 }
 
@@ -144,12 +170,7 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
             for f in &fields_named.named {
                 let field = TargetField::Named(f.ident.clone().unwrap());
                 let (field_type, scope) = get_type_and_scope(&f.ty);
-                let dependency = Dependency::new(
-                    field,
-                    field_type,
-                    scope,
-                    container.clone()
-                );
+                let dependency = Dependency::new(field, field_type, scope, container.clone());
 
                 deps.push(dependency);
             }
@@ -160,12 +181,7 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
             for (index, f) in fields_unnamed.unnamed.iter().enumerate() {
                 let field = TargetField::Unnamed(index);
                 let (field_type, scope) = get_type_and_scope(&f.ty);
-                let dependency = Dependency::new(
-                    field,
-                    field_type,
-                    scope,
-                    container.clone()
-                );
+                let dependency = Dependency::new(field, field_type, scope, container.clone());
 
                 deps.push(dependency);
             }
@@ -235,3 +251,10 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
     }
 }
 
+fn token_stream_to_string(tokens: proc_macro2::TokenStream) -> String {
+    tokens
+        .to_string()
+        .split_ascii_whitespace()
+        .collect::<Vec<_>>()
+        .join("")
+}

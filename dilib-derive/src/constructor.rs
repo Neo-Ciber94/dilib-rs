@@ -1,0 +1,48 @@
+use syn::parse::{Parse, ParseStream};
+use syn::punctuated::Punctuated;
+use syn::parenthesized;
+use syn::token::{Paren, Comma};
+use proc_macro2::Ident;
+
+#[derive(Debug)]
+pub struct TargetConstructor {
+    pub(crate) name: String,
+    pub(crate) args: Vec<String>,
+}
+
+impl TargetConstructor {
+    pub fn new(name: String, args: Vec<String>) -> Self {
+        TargetConstructor { name, args }
+    }
+}
+
+// new(param1, param2, ...)
+#[derive(Debug)]
+pub struct TargetConstructorTokens {
+    method: Ident,
+    paren_token: Paren,
+    args: Punctuated<Ident, Comma>
+}
+
+impl TargetConstructorTokens {
+    pub fn into_constructor(self) -> TargetConstructor {
+        let name = self.method.to_string();
+        let args = self.args
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+
+        TargetConstructor { name, args }
+    }
+}
+
+impl Parse for TargetConstructorTokens {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        Ok(TargetConstructorTokens {
+            method: input.parse()?,
+            paren_token: parenthesized!(content in input),
+            args: content.parse_terminated(Ident::parse)?
+        })
+    }
+}

@@ -3,6 +3,7 @@ use syn::Lit;
 use quote::*;
 use proc_macro2::{Span, TokenStream};
 
+#[derive(Debug)]
 pub struct Dependency {
     field: TargetField,
     field_type: Type,
@@ -46,12 +47,13 @@ impl Dependency {
         let var_type = self.field_type.clone();
         let expr = self.emit_assign_expr();
 
+        // todo: use Option::expect(error) with an error explaining the type that cause the error
         match self.scope {
             Scope::Scoped => {
-                quote! { let #local_var : #var_type = #expr ;}
+                quote! { let #local_var : #var_type = #expr .unwrap();}
             }
             Scope::Singleton => {
-                quote! { let #local_var : dilib::Singleton< #var_type > = #expr ;}
+                quote! { let #local_var : dilib::Singleton< #var_type > = #expr .unwrap();}
             }
         }
     }
