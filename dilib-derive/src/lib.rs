@@ -1,6 +1,10 @@
 mod target;
 mod dependency;
 mod constructor;
+mod helpers;
+mod utils;
+mod strings;
+mod error;
 
 use proc_macro::TokenStream;
 use crate::target::parse_derive_injectable;

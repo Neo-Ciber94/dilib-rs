@@ -41,9 +41,9 @@ dependencies = [
 
 [[package]]
 name = "mattro"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e73812d38314aed8b11af97265c127d038267116f1d335b17a4b2184088e23c9"
+checksum = "733558eb065d5497dba69d0b5f684f4bf4b400b4575bbe5c262f8217ea44fead"
 dependencies = [
  "linked_hash_set",
  "proc-macro2",

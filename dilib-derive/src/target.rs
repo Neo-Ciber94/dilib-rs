@@ -1,19 +1,19 @@
 use proc_macro::TokenStream;
 use std::str::FromStr;
 
-use mattro::MacroAttribute;
+use mattro::{MacroAttribute, MetaItem, NameValue};
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
+use syn::parse::Parse;
+use syn::punctuated::Punctuated;
+use syn::token::{Comma, Paren};
 use syn::{
     Data, DataStruct, DeriveInput, Expr, ExprCall, Field, Fields, GenericArgument, Ident,
     PathArguments, Type,
 };
-use syn::parse::Parse;
-use syn::punctuated::Punctuated;
-use syn::token::{Comma, Paren};
 
 use crate::constructor::{TargetConstructor, TargetConstructorTokens};
-use crate::dependency::{Dependency, Scope, TargetField};
+use crate::dependency::{DefaultValue, Dependency, Scope, TargetField};
 
 #[derive(Debug)]
 pub struct InjectableTarget {
@@ -113,19 +113,23 @@ fn get_target_constructor(input: &DeriveInput) -> Option<TargetConstructor> {
         .cloned()
         .map(|a| MacroAttribute::new(a).unwrap())
         .filter(|a| a.path() == "inject")
-        .map(|a| a.into_name_values().unwrap())
-        .filter(|a| a.contains("constructor"))
         .collect::<Vec<_>>();
 
-    if let Some(attr) = attributes.last() {
-        let value = attr.get("constructor").unwrap();
+    // Check if the `#[inject(constructor="")]` are well formed
+    for attr in &attributes {
+        if crate::utils::validate_inject_constructor(attr).is_err() {
+            panic!("invalid inject constructor `{}`", attr);
+        }
+    }
+
+    if let Some(attr) = attributes.last().cloned() {
+        let name_value_attr = attr.into_name_values().unwrap();
+        let value = name_value_attr.get("constructor").unwrap();
         let token_string = value.to_string_literal().unwrap();
         let tokens = proc_macro2::TokenStream::from_str(&token_string).unwrap();
         if let Ok(result) = syn::parse2::<TargetConstructorTokens>(tokens) {
-            return Some(result.into_constructor())
+            return Some(result.into_constructor());
         }
-
-        panic!("invalid inject constructor: `{}`", token_string);
     }
 
     None
@@ -162,16 +166,14 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
     let mut deps = Vec::new();
     let container = Ident::new("container", Span::call_site());
 
-    // todo: check for attributes for additional config
-
     match fields {
         Fields::Unit => deps,
         Fields::Named(fields_named) => {
             for f in &fields_named.named {
                 let field = TargetField::Named(f.ident.clone().unwrap());
                 let (field_type, scope) = get_type_and_scope(&f.ty);
-                let dependency = Dependency::new(field, field_type, scope, container.clone());
-
+                let mut dependency = Dependency::new(field, field_type, scope, container.clone());
+                set_dependency_attributes(f, &mut dependency);
                 deps.push(dependency);
             }
 
@@ -181,8 +183,8 @@ fn get_deps(fields: &Fields) -> Vec<Dependency> {
             for (index, f) in fields_unnamed.unnamed.iter().enumerate() {
                 let field = TargetField::Unnamed(index);
                 let (field_type, scope) = get_type_and_scope(&f.ty);
-                let dependency = Dependency::new(field, field_type, scope, container.clone());
-
+                let mut dependency = Dependency::new(field, field_type, scope, container.clone());
+                set_dependency_attributes(f, &mut dependency);
                 deps.push(dependency);
             }
 
@@ -206,11 +208,6 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
             if type_path.qself.is_some() {
                 return None;
             }
-
-            // todo: We are not checking full paths like: dilib::Singleton<T>
-
-            let raw = type_path.path.to_token_stream().to_string();
-            let s = raw.split_ascii_whitespace().collect::<String>();
 
             // SAFETY: A type path should have at least 1 element
             let segment = type_path.path.segments.last().unwrap();
@@ -251,10 +248,60 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
     }
 }
 
-fn token_stream_to_string(tokens: proc_macro2::TokenStream) -> String {
-    tokens
-        .to_string()
-        .split_ascii_whitespace()
-        .collect::<Vec<_>>()
-        .join("")
+fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
+    use crate::strings;
+
+    let attributes = field
+        .attrs
+        .iter()
+        .cloned()
+        .map(|attr| MacroAttribute::new(attr).unwrap())
+        .filter(|attr| attr.path() == strings::INJECT)
+        .collect::<Vec<_>>();
+
+    if attributes.len() > 0 {
+        for attr in &attributes {
+            if let Err(error) = crate::utils::validate_inject(attr) {
+                panic!("{}", error);
+            }
+        }
+
+        let attribute = attributes.last().unwrap();
+        for meta_item in attribute.iter() {
+            match meta_item {
+                // #[inject(default)]
+                MetaItem::Path(path) => {
+                    assert_eq!(path, strings::DEFAULT);
+                    dependency.set_default_value(DefaultValue::Infer);
+                }
+                MetaItem::NameValue(NameValue { name, value }) => match name.as_str() {
+                    strings::DEFAULT => {
+                        let lit = value
+                            .as_literal()
+                            .expect("`#[inject(default=literal)]` expected a literal value");
+                        dependency.set_default_value(DefaultValue::Literal(lit.clone()));
+                    }
+                    strings::NAME => {
+                        let s = value
+                            .to_string_literal()
+                            .expect("`#[inject(name=\"...\"]` expect an string literal");
+                        dependency.set_name(s);
+                    },
+                    strings::SCOPE => {
+                        static INVALID_SCOPE : &str = "`#[inject(scope=\"...\")]` must be \"singleton\" or \"scoped\"";
+                        let s = value.to_string_literal().expect(INVALID_SCOPE);
+                        let scope = match s.as_str() {
+                            "scoped" => Scope::Scoped,
+                            "singleton" => Scope::Singleton,
+                            _ => panic!("{}", INVALID_SCOPE)
+                        };
+
+                        dependency.set_scope(scope);
+                    },
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
+            }
+        }
+    }
 }

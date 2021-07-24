@@ -11,4 +11,4 @@ proc_macro = true
 proc-macro2 = "1.0.27"
 quote = "1.0.9"
 syn = { version = "1.0.73" , features=["parsing"]}
-mattro = "0.1.1"
+mattro = "0.1.2"

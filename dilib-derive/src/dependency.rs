@@ -29,6 +29,10 @@ impl Dependency {
         self.name = Some(name);
     }
 
+    pub fn set_scope(&mut self, scope: Scope) {
+        self.scope = scope;
+    }
+
     pub fn set_default_value(&mut self, default_value: DefaultValue) {
         self.default_value = Some(default_value);
     }
