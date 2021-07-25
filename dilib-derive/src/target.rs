@@ -10,7 +10,7 @@ use crate::dependency::{DefaultValue, Dependency, Scope, TargetField};
 use crate::utils::InjectError;
 
 #[derive(Debug)]
-pub struct InjectableTarget {
+pub struct DeriveInjectable {
     target_type: Ident,
     container: Ident,
     constructor: Option<TargetConstructor>,
@@ -19,7 +19,7 @@ pub struct InjectableTarget {
     is_unit: bool,
 }
 
-impl InjectableTarget {
+impl DeriveInjectable {
     pub fn new(
         target_type: Ident,
         container: Ident,
@@ -28,7 +28,7 @@ impl InjectableTarget {
         generics: Generics,
         is_unit: bool,
     ) -> Self {
-        InjectableTarget {
+        DeriveInjectable {
             target_type,
             container,
             constructor,
@@ -85,6 +85,7 @@ impl InjectableTarget {
         tokens
     }
 
+    // Generics with constrains: <T: Trait, B: OtherTrait>
     pub fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
             let params = &self.generics.params;
@@ -96,6 +97,7 @@ impl InjectableTarget {
         }
     }
 
+    // Generic types without contains: <T, B>
     pub fn generics_types(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
             let types = self.generics.params
@@ -117,6 +119,7 @@ impl InjectableTarget {
         }
     }
 
+    // Generics where clause: where T: Trait, B: OtherTrait
     pub fn where_clause(&self) -> Option<proc_macro2::TokenStream> {
         if self.generics.where_clause.is_some() {
            let tokens = self.generics.where_clause.to_token_stream();
@@ -127,7 +130,7 @@ impl InjectableTarget {
     }
 }
 
-pub fn parse_derive_injectable(input: DeriveInput) -> InjectableTarget {
+pub fn parse_derive_injectable(input: DeriveInput) -> DeriveInjectable {
     match &input.data {
         Data::Enum(_) => panic!("Enum types cannot implement `Injectable` with #[derive]"),
         Data::Union(_) => panic!("Union types cannot implement `Injectable` with #[derive]"),
@@ -139,7 +142,7 @@ pub fn parse_derive_injectable(input: DeriveInput) -> InjectableTarget {
             let generics = input.generics.clone();
             let is_unit = data_struct.fields == Fields::Unit;
 
-            InjectableTarget::new(target_type, container, constructor, deps, generics, is_unit)
+            DeriveInjectable::new(target_type, container, constructor, deps, generics, is_unit)
         }
     }
 }
