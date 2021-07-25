@@ -1,19 +1,13 @@
-use proc_macro::TokenStream;
 use std::str::FromStr;
 
-use mattro::{MacroAttribute, MetaItem, NameValue};
+use mattro::{MacroAttribute, MetaItem};
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::parse::Parse;
-use syn::punctuated::Punctuated;
-use syn::token::{Comma, Paren};
-use syn::{
-    Data, DataStruct, DeriveInput, Expr, ExprCall, Field, Fields, GenericArgument, Ident,
-    PathArguments, Type,
-};
+use syn::{Data, DataStruct, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type, Generics, GenericParam};
 
 use crate::constructor::{TargetConstructor, TargetConstructorTokens};
 use crate::dependency::{DefaultValue, Dependency, Scope, TargetField};
+use crate::utils::InjectError;
 
 #[derive(Debug)]
 pub struct InjectableTarget {
@@ -21,6 +15,7 @@ pub struct InjectableTarget {
     container: Ident,
     constructor: Option<TargetConstructor>,
     deps: Vec<Dependency>,
+    generics: Generics,
     is_unit: bool,
 }
 
@@ -30,6 +25,7 @@ impl InjectableTarget {
         container: Ident,
         constructor: Option<TargetConstructor>,
         deps: Vec<Dependency>,
+        generics: Generics,
         is_unit: bool,
     ) -> Self {
         InjectableTarget {
@@ -37,13 +33,9 @@ impl InjectableTarget {
             container,
             constructor,
             deps,
+            generics,
             is_unit,
         }
-    }
-
-    /// Returns `true` if the target type is using the unit syntax `Struct` and not `Struct{}`.
-    fn is_unit(&self) -> bool {
-        self.is_unit
     }
 
     pub fn emit(&self) -> proc_macro2::TokenStream {
@@ -61,8 +53,11 @@ impl InjectableTarget {
 
         let container = &self.container;
         let deps = self.deps.as_slice();
+        let generic_params = self.generics_params();
+        let generic_types = self.generics_types();
+        let where_clause = self.where_clause();
 
-        let create_instance = if let Some(constructor) = &self.constructor {
+        let body = if let Some(constructor) = &self.constructor {
             let params = constructor
                 .args
                 .iter()
@@ -78,13 +73,56 @@ impl InjectableTarget {
             quote! { #target_type { #(#params),* } }
         };
 
-        quote! {
-            impl dilib::Injectable for #target_type {
+        let tokens = quote! {
+            impl #generic_params dilib::Injectable for #target_type #generic_types #where_clause {
                 fn resolve(#container : &dilib::Container) -> Self {
                     #(#deps)*
-                    #create_instance
+                    #body
                 }
             }
+        };
+
+        tokens
+    }
+
+    pub fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
+        if !self.generics.params.is_empty() {
+            let params = &self.generics.params;
+            Some(quote! {
+                < #params > }
+            )
+        } else {
+            None
+        }
+    }
+
+    pub fn generics_types(&self) -> Option<proc_macro2::TokenStream> {
+        if !self.generics.params.is_empty() {
+            let types = self.generics.params
+                .iter()
+                .filter_map(|param| {
+                    match param {
+                        GenericParam::Type(t) => Some(t.clone().ident),
+                        GenericParam::Const(t) => Some(t.clone().ident),
+                        GenericParam::Lifetime(_) => None,
+                    }
+                })
+                .collect::<Vec<_>>();
+
+            Some(quote! {
+                < #(#types),* >
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn where_clause(&self) -> Option<proc_macro2::TokenStream> {
+        if self.generics.where_clause.is_some() {
+           let tokens = self.generics.where_clause.to_token_stream();
+            Some(tokens)
+        } else {
+            None
         }
     }
 }
@@ -98,9 +136,10 @@ pub fn parse_derive_injectable(input: DeriveInput) -> InjectableTarget {
             let constructor = get_target_constructor(&input);
             let container = get_container_identifier(data_struct);
             let deps = get_deps(&data_struct.fields);
+            let generics = input.generics.clone();
             let is_unit = data_struct.fields == Fields::Unit;
 
-            InjectableTarget::new(target_type, container, constructor, deps, is_unit)
+            InjectableTarget::new(target_type, container, constructor, deps, generics, is_unit)
         }
     }
 }
@@ -117,8 +156,14 @@ fn get_target_constructor(input: &DeriveInput) -> Option<TargetConstructor> {
 
     // Check if the `#[inject(constructor="")]` are well formed
     for attr in &attributes {
-        if crate::utils::validate_inject_constructor(attr).is_err() {
+        if attr.len() != 1 || attr.path() != crate::strings::INJECT {
             panic!("invalid inject constructor `{}`", attr);
+
+        }
+        if let Some(MetaItem::NameValue(s)) = attr.get(0) {
+            if s.name != crate::strings::CONSTRUCTOR {
+                panic!("invalid inject constructor `{}`", attr);
+            }
         }
     }
 
@@ -260,48 +305,74 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
         .collect::<Vec<_>>();
 
     if attributes.len() > 0 {
-        for attr in &attributes {
-            if let Err(error) = crate::utils::validate_inject(attr) {
-                panic!("{}", error);
-            }
-        }
+        let attr = attributes.last().unwrap();
 
-        let attribute = attributes.last().unwrap();
-        for meta_item in attribute.iter() {
-            match meta_item {
-                // #[inject(default)]
-                MetaItem::Path(path) => {
-                    assert_eq!(path, strings::DEFAULT);
-                    dependency.set_default_value(DefaultValue::Infer);
-                }
-                MetaItem::NameValue(NameValue { name, value }) => match name.as_str() {
-                    strings::DEFAULT => {
-                        let lit = value
-                            .as_literal()
-                            .expect("`#[inject(default=literal)]` expected a literal value");
-                        dependency.set_default_value(DefaultValue::Literal(lit.clone()));
+        match crate::utils::convert_to_inject_attribute_map(attr) {
+            Ok(map) => {
+                for (name, value) in map {
+                    match name.as_str() {
+                        strings::DEFAULT => {
+                            if value.is_none() {
+                                dependency.set_default_value(DefaultValue::Infer);
+                            } else {
+                                let lit = value.unwrap().as_literal().cloned().expect(&format!(
+                                    "expected literal for default value: {}",
+                                    attr
+                                ));
+
+                                dependency.set_default_value(DefaultValue::Literal(lit))
+                            }
+                        }
+                        strings::NAME => {
+                            let s = value
+                                .as_ref()
+                                .cloned()
+                                .unwrap()
+                                .to_string_literal()
+                                .expect(&format!(
+                                "expected string literal for `name` but was: `#[inject(name={})]`",
+                                value.unwrap()
+                            ));
+
+                            dependency.set_name(s);
+                        }
+                        strings::SCOPE => {
+                            let s = value.unwrap().to_string_literal().expect(&format!(
+                                "expected string literal for scope: `#[inject(scope=\"...\")]`"
+                            ));
+
+                            let scope = match s.as_str() {
+                                "singleton" => Scope::Singleton,
+                                "scoped" => Scope::Scoped,
+                                _ => panic!(
+                                    "invalid scope value: `{}`, expected \"singleton\" or \"scoped\"", s
+                                )
+                            };
+
+                            dependency.set_scope(scope);
+                        }
+                        _ => unreachable!(),
                     }
-                    strings::NAME => {
-                        let s = value
-                            .to_string_literal()
-                            .expect("`#[inject(name=\"...\"]` expect an string literal");
-                        dependency.set_name(s);
-                    },
-                    strings::SCOPE => {
-                        static INVALID_SCOPE : &str = "`#[inject(scope=\"...\")]` must be \"singleton\" or \"scoped\"";
-                        let s = value.to_string_literal().expect(INVALID_SCOPE);
-                        let scope = match s.as_str() {
-                            "scoped" => Scope::Scoped,
-                            "singleton" => Scope::Singleton,
-                            _ => panic!("{}", INVALID_SCOPE)
-                        };
-
-                        dependency.set_scope(scope);
-                    },
-                    _ => unreachable!(),
-                },
-                _ => unreachable!(),
+                }
             }
+            Err(error) => panic_for_inject_error(error, attr),
+        }
+    }
+}
+
+fn panic_for_inject_error(error: InjectError, attr: &MacroAttribute) -> ! {
+    match error {
+        InjectError::DuplicatedKey(s) => {
+            panic!("duplicated `#[inject]` key: {}", s);
+        }
+        InjectError::InvalidKey(s) => {
+            panic!(
+                "invalid `#[inject]` key: `{}`, valid keys: `name`, `scope` and `default`",
+                s
+            );
+        }
+        InjectError::InvalidAttribute => {
+            panic!("invalid attribute: {}", attr);
         }
     }
 }

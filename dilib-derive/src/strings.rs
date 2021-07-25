@@ -13,6 +13,3 @@ pub const NAME : &str = "name";
 
 // #[inject(default=1)]
 pub const DEFAULT : &str = "default";
-
-// #[inject(scope="singleton")]
-pub const SCOPES : [&str; 2] = ["scoped", "singleton"];

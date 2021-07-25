@@ -32,7 +32,7 @@ impl TargetConstructorTokens {
             .map(|s| s.to_string())
             .collect::<Vec<_>>();
 
-        TargetConstructor { name, args }
+        TargetConstructor::new(name, args)
     }
 }
 
