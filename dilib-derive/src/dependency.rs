@@ -1,7 +1,7 @@
-use syn::{Type, Ident};
-use syn::Lit;
-use quote::*;
 use proc_macro2::{Span, TokenStream};
+use quote::*;
+use syn::Lit;
+use syn::{Ident, Type};
 
 #[derive(Debug)]
 pub struct Dependency {
@@ -10,7 +10,7 @@ pub struct Dependency {
     scope: Scope,
     container: Ident,
     name: Option<String>,
-    default_value: Option<DefaultValue>
+    default_value: Option<DefaultValue>,
 }
 
 impl Dependency {
@@ -21,7 +21,7 @@ impl Dependency {
             scope,
             container,
             name: None,
-            default_value: None
+            default_value: None,
         }
     }
 
@@ -40,9 +40,7 @@ impl Dependency {
     pub fn var_name(&self) -> Ident {
         match self.field.clone() {
             TargetField::Named(s) => s,
-            TargetField::Unnamed(n) => {
-                Ident::new(&format!("_{}", n), Span::call_site())
-            }
+            TargetField::Unnamed(n) => Ident::new(&format!("_{}", n), Span::call_site()),
         }
     }
 
@@ -50,14 +48,37 @@ impl Dependency {
         let local_var = self.var_name();
         let var_type = self.field_type.clone();
         let expr = self.emit_assign_expr();
+        let msg = self.get_error_message();
 
-        // todo: use Option::expect(error) with an error explaining the type that cause the error
         match self.scope {
             Scope::Scoped => {
-                quote! { let #local_var : #var_type = #expr .unwrap();}
+                quote! { let #local_var : #var_type = #expr .expect(#msg); }
             }
             Scope::Singleton => {
-                quote! { let #local_var : dilib::Singleton< #var_type > = #expr .unwrap();}
+                quote! { let #local_var : dilib::Singleton< #var_type > = #expr .expect(#msg); }
+            }
+        }
+    }
+
+    fn get_error_message(&self) -> String {
+        match (&self.scope, &self.name) {
+            (Scope::Scoped, Some(name)) => {
+                format!("cannot get scoped value of name \"{}\"", name)
+            }
+            (Scope::Singleton, Some(name)) => {
+                format!("cannot get singleton value of name \"{}\"", name)
+            }
+            (Scope::Scoped, None) => {
+                let ty = crate::helpers::token_stream_to_string_non_whitespace(
+                    &self.field_type.to_token_stream(),
+                );
+                format!("cannot get scoped value of type `{}`", ty)
+            }
+            (Scope::Singleton, None) => {
+                let ty = crate::helpers::token_stream_to_string_non_whitespace(
+                    &self.field_type.to_token_stream(),
+                );
+                format!("cannot get singleton value of type `{}`", ty)
             }
         }
     }
@@ -73,7 +94,7 @@ impl Dependency {
                 DefaultValue::Literal(literal) => quote! { #literal },
 
                 // let var : type = Default::default()
-                DefaultValue::Infer => quote! { Default::default() }
+                DefaultValue::Infer => quote! { Default::default() },
             };
         }
 
@@ -113,7 +134,7 @@ impl ToTokens for Dependency {
 #[derive(Debug, Clone)]
 pub enum Scope {
     Scoped,
-    Singleton
+    Singleton,
 }
 
 /// Default value of the dependency value.
@@ -122,11 +143,11 @@ pub enum DefaultValue {
     /// A literal as default value.
     Literal(Lit),
     /// Infer the default value using `Default` trait.
-    Infer
+    Infer,
 }
 
 #[derive(Debug, Clone)]
 pub enum TargetField {
     Named(Ident),
-    Unnamed(usize)
+    Unnamed(usize),
 }

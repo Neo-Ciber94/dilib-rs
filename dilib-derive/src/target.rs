@@ -73,16 +73,14 @@ impl DeriveInjectable {
             quote! { #target_type { #(#params),* } }
         };
 
-        let tokens = quote! {
+        quote! {
             impl #generic_params dilib::Injectable for #target_type #generic_types #where_clause {
                 fn resolve(#container : &dilib::Container) -> Self {
                     #(#deps)*
                     #body
                 }
             }
-        };
-
-        tokens
+        }
     }
 
     // Generics with constrains: <T: Trait, B: OtherTrait>
