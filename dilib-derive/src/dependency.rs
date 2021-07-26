@@ -50,12 +50,23 @@ impl Dependency {
         let expr = self.emit_assign_expr();
         let msg = self.get_error_message();
 
+        let get_value = match &self.default_value {
+            // let name : type = "string literal".into()
+            Some(DefaultValue::Literal(Lit::Str(_))) => quote! { .into() },
+
+            // let name : type = Default::default()
+            Some(DefaultValue::Infer) => quote! {},
+
+            // let name : type = container.get::<type>().expect("...")
+            _ => quote! { .expect(#msg) },
+        };
+
         match self.scope {
             Scope::Scoped => {
-                quote! { let #local_var : #var_type = #expr .expect(#msg); }
+                quote! { let #local_var : #var_type = #expr #get_value ; }
             }
             Scope::Singleton => {
-                quote! { let #local_var : dilib::Singleton< #var_type > = #expr .expect(#msg); }
+                quote! { let #local_var : dilib::Singleton< #var_type > = #expr #get_value ; }
             }
         }
     }

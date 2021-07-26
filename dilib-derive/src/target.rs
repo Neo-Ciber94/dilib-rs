@@ -3,7 +3,10 @@ use std::str::FromStr;
 use mattro::{MacroAttribute, MetaItem};
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use syn::{Data, DataStruct, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type, Generics, GenericParam};
+use syn::{
+    Data, DataStruct, DeriveInput, Field, Fields, GenericArgument, GenericParam, Generics, Ident,
+    PathArguments, Type,
+};
 
 use crate::constructor::{TargetConstructor, TargetConstructorTokens};
 use crate::dependency::{DefaultValue, Dependency, Scope, TargetField};
@@ -84,28 +87,27 @@ impl DeriveInjectable {
     }
 
     // Generics with constrains: <T: Trait, B: OtherTrait>
-    pub fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
+    fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
             let params = &self.generics.params;
             Some(quote! {
-                < #params > }
-            )
+            < #params > })
         } else {
             None
         }
     }
 
     // Generic types without contains: <T, B>
-    pub fn generics_types(&self) -> Option<proc_macro2::TokenStream> {
+    fn generics_types(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
-            let types = self.generics.params
+            let types = self
+                .generics
+                .params
                 .iter()
-                .filter_map(|param| {
-                    match param {
-                        GenericParam::Type(t) => Some(t.clone().ident),
-                        GenericParam::Const(t) => Some(t.clone().ident),
-                        GenericParam::Lifetime(_) => None,
-                    }
+                .filter_map(|param| match param {
+                    GenericParam::Type(t) => Some(t.clone().ident),
+                    GenericParam::Const(t) => Some(t.clone().ident),
+                    GenericParam::Lifetime(_) => None,
                 })
                 .collect::<Vec<_>>();
 
@@ -118,9 +120,9 @@ impl DeriveInjectable {
     }
 
     // Generics where clause: where T: Trait, B: OtherTrait
-    pub fn where_clause(&self) -> Option<proc_macro2::TokenStream> {
+    fn where_clause(&self) -> Option<proc_macro2::TokenStream> {
         if self.generics.where_clause.is_some() {
-           let tokens = self.generics.where_clause.to_token_stream();
+            let tokens = self.generics.where_clause.to_token_stream();
             Some(tokens)
         } else {
             None
@@ -159,7 +161,6 @@ fn get_target_constructor(input: &DeriveInput) -> Option<TargetConstructor> {
     for attr in &attributes {
         if attr.len() != 1 || attr.path() != crate::strings::INJECT {
             panic!("invalid inject constructor `{}`", attr);
-
         }
         if let Some(MetaItem::NameValue(s)) = attr.get(0) {
             if s.name != crate::strings::CONSTRUCTOR {
@@ -325,15 +326,12 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
                             }
                         }
                         strings::NAME => {
-                            let s = value
-                                .as_ref()
-                                .cloned()
-                                .unwrap()
-                                .to_string_literal()
-                                .expect(&format!(
+                            let s = value.as_ref().cloned().unwrap().to_string_literal().expect(
+                                &format!(
                                 "expected string literal for `name` but was: `#[inject(name={})]`",
                                 value.unwrap()
-                            ));
+                            ),
+                            );
 
                             dependency.set_name(s);
                         }
@@ -367,10 +365,12 @@ fn panic_for_inject_error(error: InjectError, attr: &MacroAttribute) -> ! {
             panic!("duplicated `#[inject]` key: {}", s);
         }
         InjectError::InvalidKey(s) => {
-            panic!(
-                "invalid `#[inject]` key: `{}`, valid keys: `name`, `scope` and `default`",
-                s
-            );
+            // panic!(
+            //     "invalid `#[inject]` key: `{}`, valid keys: `name`, `scope` and `default`",
+            //     s
+            // );
+
+            panic!("invalid `#[inject]` key: `{}`", s);
         }
         InjectError::InvalidAttribute => {
             panic!("invalid attribute: {}", attr);
