@@ -90,8 +90,7 @@ impl DeriveInjectable {
     fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
             let params = &self.generics.params;
-            Some(quote! {
-            < #params > })
+            Some(quote! { < #params > })
         } else {
             None
         }

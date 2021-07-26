@@ -105,7 +105,7 @@ impl Dependency {
                 DefaultValue::Literal(literal) => quote! { #literal },
 
                 // let var : type = Default::default()
-                DefaultValue::Infer => quote! { Default::default() },
+                DefaultValue::Infer => quote! { std::default::Default::default() },
             };
         }
 
