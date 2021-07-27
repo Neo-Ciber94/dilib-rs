@@ -71,6 +71,7 @@ impl Dependency {
         }
     }
 
+
     fn get_error_message(&self) -> String {
         match (&self.scope, &self.name) {
             (Scope::Scoped, Some(name)) => {
@@ -110,25 +111,25 @@ impl Dependency {
         }
 
         let container = &self.container;
-        let var_type = &self.field_type;
+        // let var_type = &self.field_type;
 
         match self.scope {
             Scope::Scoped => {
                 if let Some(name) = self.name.as_deref() {
-                    // let var : type = container.get_scoped_with_name::<type>(name);
-                    quote! { #container.get_scoped_with_name::<#var_type>(#name) }
+                    // let var : type = container.get_scoped_with_name(name);
+                    quote! { #container.get_scoped_with_name(#name) }
                 } else {
-                    // let var : type = container.get_scoped::<type>();
-                    quote! { #container.get_scoped::<#var_type>() }
+                    // let var : type = container.get_scoped();
+                    quote! { #container.get_scoped() }
                 }
             }
             Scope::Singleton => {
                 if let Some(name) = self.name.as_deref() {
-                    // let var : type = container.get_singleton_with_name::<type>(name);
-                    quote! { #container.get_singleton_with_name::<#var_type>(#name) }
+                    // let var : type = container.get_singleton_with_name(name);
+                    quote! { #container.get_singleton_with_name(#name) }
                 } else {
-                    // let var : type = container.get_singleton::<type>();
-                    quote! { #container.get_singleton::<#var_type>() }
+                    // let var : type = container.get_singleton();
+                    quote! { #container.get_singleton() }
                 }
             }
         }

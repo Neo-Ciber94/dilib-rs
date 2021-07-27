@@ -43,37 +43,30 @@ impl DeriveInjectable {
 
     pub fn emit(&self) -> proc_macro2::TokenStream {
         let target_type = &self.target_type;
-
-        if self.is_unit {
-            return quote! {
-                impl dilib::Injectable for #target_type {
-                    fn resolve(_: &dilib::Container) -> Self {
-                        #target_type
-                    }
-                }
-            };
-        }
-
         let container = &self.container;
         let deps = self.deps.as_slice();
         let generic_params = self.generics_params();
         let generic_types = self.generics_types();
         let where_clause = self.where_clause();
 
-        let body = if let Some(constructor) = &self.constructor {
-            let params = constructor
-                .args
-                .iter()
-                .map(|s| Ident::new(s, Span::call_site()));
-
-            // Type :: constructor ( params )
-            let constructor_name = Ident::new(&constructor.name, Span::call_site());
-            quote! { #target_type :: #constructor_name ( #(#params),* )}
+        let body = if self.is_unit {
+            quote! { #target_type }
         } else {
-            let params = deps.iter().map(|s| s.var_name());
+            if let Some(constructor) = &self.constructor {
+                let params = constructor
+                    .args
+                    .iter()
+                    .map(|s| Ident::new(s, Span::call_site()));
 
-            // Type { params }
-            quote! { #target_type { #(#params),* } }
+                // Type :: constructor ( params )
+                let constructor_name = Ident::new(&constructor.name, Span::call_site());
+                quote! { #target_type :: #constructor_name ( #(#params),* )}
+            } else {
+                let params = deps.iter().map(|s| s.var_name());
+
+                // Type { params }
+                quote! { #target_type { #(#params),* } }
+            }
         };
 
         quote! {
@@ -103,10 +96,10 @@ impl DeriveInjectable {
                 .generics
                 .params
                 .iter()
-                .filter_map(|param| match param {
-                    GenericParam::Type(t) => Some(t.clone().ident),
-                    GenericParam::Const(t) => Some(t.clone().ident),
-                    GenericParam::Lifetime(_) => None,
+                .map(|param| match param {
+                    GenericParam::Type(t) => t.ident.to_token_stream(),
+                    GenericParam::Const(t) => t.ident.to_token_stream(),
+                    GenericParam::Lifetime(t) => t.to_token_stream(),
                 })
                 .collect::<Vec<_>>();
 

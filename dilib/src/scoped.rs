@@ -81,6 +81,7 @@ impl Scoped {
     }
 }
 
+//todo: USE SAFE Rust
 #[derive(Debug, Clone)]
 enum BoxClosure {
     Fn(NonNull<dyn Fn()>),
