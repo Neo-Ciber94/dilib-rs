@@ -1,6 +1,11 @@
 use crate::Container;
-use std::any::TypeId;
+use std::any::{TypeId, Any};
 use std::ptr::NonNull;
+use std::sync::Arc;
+use std::fmt::{Debug, Formatter};
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct InvalidFunctionType;
 
 /// Represents an `Scoped` provider which provide a new instance each time.
 #[derive(Debug, Clone)]
@@ -41,12 +46,8 @@ impl Scoped {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
-            // SAFETY: Safe because check the return type is `T`
-            unsafe {
-                let f = self.inner.as_fn()?;
-                let ret : T = f();
-                Some(ret)
-            }
+            let value = self.inner.call::<T>().ok()?;
+            Some(value)
         }
     }
 
@@ -59,12 +60,8 @@ impl Scoped {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
-            // SAFETY: Safe because we check the return type is `T` and take an arg `&Container`
-            unsafe {
-                let f = self.inner.as_fn_arg::<&Container, T>()?;
-                let ret : T = f(container);
-                Some(ret)
-            }
+            let value = self.inner.call_with::<T>(container).ok()?;
+            Some(value)
         }
     }
 
@@ -81,53 +78,57 @@ impl Scoped {
     }
 }
 
-//todo: USE SAFE Rust
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 enum BoxClosure {
-    Fn(NonNull<dyn Fn()>),
-    FnArg(NonNull<dyn Fn()>),
+    Fn(Arc<dyn Fn() -> Box<dyn Any>>),
+    FnArg(Arc<dyn Fn(&Container) -> Box<dyn Any>>),
+}
+
+impl Debug for BoxClosure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
 }
 
 impl BoxClosure {
     pub fn from_fn<T, F>(f: F) -> Self
         where
-            T: 'static,
+            T: 'static ,
             F: Fn() -> T + 'static,
     {
-        let raw = Box::leak(Box::new(f));
-        let ptr = raw as *mut dyn Fn() -> T as _;
-        BoxClosure::Fn(NonNull::new(ptr).unwrap())
+        let func : Arc<dyn Fn() -> Box<dyn Any>> = Arc::new(move || Box::new(f()));
+        BoxClosure::Fn(func)
     }
 
-    pub fn from_fn_arg<T, A, F>(f: F) -> Self
+    pub fn from_fn_arg<T, F>(f: F) -> Self
         where
             T: 'static,
-            A: 'static,
-            F: Fn(A) -> T + 'static,
+            F: Fn(&Container) -> T + 'static,
     {
-        let raw = Box::leak(Box::new(f));
-        let ptr = raw as *mut dyn Fn(A) -> T as _;
-        BoxClosure::FnArg(NonNull::new(ptr).unwrap())
+        let func : Arc<dyn Fn(&Container) -> Box<dyn Any>> = Arc::new(move |c: &Container| Box::new(f(c)));
+        BoxClosure::FnArg(func)
     }
 
-    pub unsafe fn as_fn<T>(&self) -> Option<&dyn Fn() -> T> {
+    pub fn call<T: 'static>(&self) -> Result<T, InvalidFunctionType> {
         match self {
-            BoxClosure::FnArg(_) => None,
-            BoxClosure::Fn(f) => {
-                // Super unsafe, we don't know if we match the type `T`
-                let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn() -> T;
-                Some(&*ptr)
+            BoxClosure::FnArg(_) => Err(InvalidFunctionType),
+            BoxClosure::Fn(func) => {
+                let value : Box<dyn Any> = func.as_ref()();
+                value.downcast()
+                    .map(|x| *x)
+                    .map_err(|_| InvalidFunctionType)
             }
         }
     }
 
-    pub unsafe fn as_fn_arg<Arg, T>(&self) -> Option<&dyn Fn(Arg) -> T> {
+    pub fn call_with<T: 'static>(&self, container: &Container) -> Result<T, InvalidFunctionType> {
         match self {
-            BoxClosure::Fn(_) => None,
-            BoxClosure::FnArg(f) => {
-                // Super unsafe, we don't know if we match the type `T` or `Arg`
-                let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn(Arg) -> T;
-                Some(&*ptr)
+            BoxClosure::Fn(_) => Err(InvalidFunctionType),
+            BoxClosure::FnArg(func) => {
+                let value : Box<dyn Any> = func.as_ref()(container);
+                value.downcast()
+                    .map(|x| *x)
+                    .map_err(|_| InvalidFunctionType)
             }
         }
     }
@@ -137,19 +138,74 @@ impl BoxClosure {
     }
 }
 
-impl Drop for BoxClosure {
-    fn drop(&mut self) {
-        unsafe {
-            match self {
-                BoxClosure::FnArg(x) |
-                BoxClosure::Fn(x) => {
-                    let raw = x.as_ptr();
-                    let _ = Box::from_raw(raw);
-                }
-            }
-        }
-    }
-}
+// #[derive(Debug, Clone)]
+// enum BoxClosure {
+//     Fn(NonNull<dyn Fn()>),
+//     FnArg(NonNull<dyn Fn()>),
+// }
+//
+// impl BoxClosure {
+//     pub fn from_fn<T, F>(f: F) -> Self
+//         where
+//             T: 'static,
+//             F: Fn() -> T + 'static,
+//     {
+//         let raw = Box::leak(Box::new(f));
+//         let ptr = raw as *mut dyn Fn() -> T as _;
+//         BoxClosure::Fn(NonNull::new(ptr).unwrap())
+//     }
+//
+//     pub fn from_fn_arg<T, A, F>(f: F) -> Self
+//         where
+//             T: 'static,
+//             A: 'static,
+//             F: Fn(A) -> T + 'static,
+//     {
+//         let raw = Box::leak(Box::new(f));
+//         let ptr = raw as *mut dyn Fn(A) -> T as _;
+//         BoxClosure::FnArg(NonNull::new(ptr).unwrap())
+//     }
+//
+//     pub unsafe fn as_fn<T>(&self) -> Option<&dyn Fn() -> T> {
+//         match self {
+//             BoxClosure::FnArg(_) => None,
+//             BoxClosure::Fn(f) => {
+//                 // Super unsafe, we don't know if we match the type `T`
+//                 let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn() -> T;
+//                 Some(&*ptr)
+//             }
+//         }
+//     }
+//
+//     pub unsafe fn as_fn_arg<Arg, T>(&self) -> Option<&dyn Fn(Arg) -> T> {
+//         match self {
+//             BoxClosure::Fn(_) => None,
+//             BoxClosure::FnArg(f) => {
+//                 // Super unsafe, we don't know if we match the type `T` or `Arg`
+//                 let ptr = f.as_ptr() as *mut dyn Fn() as *mut dyn Fn(Arg) -> T;
+//                 Some(&*ptr)
+//             }
+//         }
+//     }
+//
+//     pub fn takes_args(&self) -> bool {
+//         matches!(self, BoxClosure::FnArg(_))
+//     }
+// }
+//
+// impl Drop for BoxClosure {
+//     fn drop(&mut self) {
+//         unsafe {
+//             match self {
+//                 BoxClosure::FnArg(x) |
+//                 BoxClosure::Fn(x) => {
+//                     let raw = x.as_ptr();
+//                     let _ = Box::from_raw(raw);
+//                 }
+//             }
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

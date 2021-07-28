@@ -71,7 +71,6 @@ impl Dependency {
         }
     }
 
-
     fn get_error_message(&self) -> String {
         match (&self.scope, &self.name) {
             (Scope::Scoped, Some(name)) => {
