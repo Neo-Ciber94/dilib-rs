@@ -86,7 +86,10 @@ enum BoxClosure {
 
 impl Debug for BoxClosure {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            BoxClosure::Fn(_) => write!(f, "BoxClosure::Fn(..)"),
+            BoxClosure::FnArg(_) => write!(f, "BoxClosure::FnArg(..)")
+        }
     }
 }
 
