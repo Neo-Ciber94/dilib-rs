@@ -1,11 +1,7 @@
 use crate::Container;
 use std::any::{TypeId, Any};
-use std::ptr::NonNull;
 use std::sync::Arc;
 use std::fmt::{Debug, Formatter};
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct InvalidFunctionType;
 
 /// Represents an `Scoped` provider which provide a new instance each time.
 #[derive(Debug, Clone)]
@@ -77,6 +73,9 @@ impl Scoped {
         self.inner.takes_args()
     }
 }
+
+#[derive(Debug, Eq, PartialEq)]
+struct InvalidFunctionType;
 
 #[derive(Clone)]
 enum BoxClosure {

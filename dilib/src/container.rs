@@ -24,7 +24,7 @@ impl<'a> Container<'a> {
     }
 
     /// Adds a scoped factory function.
-    pub fn add_scoped<T, F>(&mut self, f: F)
+    pub fn add_scoped<T, F>(&mut self, f: F) -> Option<Provider>
     where
         T: 'static,
         F: Fn() -> T + 'static,
@@ -33,50 +33,109 @@ impl<'a> Container<'a> {
     }
 
     /// Adds a scoped factory function with a name.
-    pub fn add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F)
+    pub fn add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F) -> Option<Provider>
     where
         T: 'static,
         F: Fn() -> T + 'static,
     {
         let scoped = Scoped::from_factory(f);
         let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Scoped(scoped), name);
+        self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
     /// Adds a singleton.
-    pub fn add_singleton<T>(&mut self, value: T)
+    pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
     {
-        self.add_singleton_with_name(None, value);
+        self.add_singleton_with_name(None, value)
     }
 
     /// Adds a singleton with a name.
-    pub fn add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T)
+    pub fn add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
     {
         let singleton = Arc::new(Mutex::new(value));
         let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Singleton(singleton), name);
+        self.add_provider::<T>(Provider::Singleton(singleton), name)
     }
 
     /// Adds an scoped injectable type.
-    pub fn add_deps<T>(&mut self)
+    pub fn add_deps<T>(&mut self) -> Option<Provider>
     where
         T: Injectable + 'static,
     {
-        self.add_deps_with_name::<T>(None);
+        self.add_deps_with_name::<T>(None)
     }
 
     /// Adds an scoped injectable type with a name.
-    pub fn add_deps_with_name<T>(&mut self, name: Option<&str>)
+    pub fn add_deps_with_name<T>(&mut self, name: Option<&str>) -> Option<Provider>
     where
         T: Injectable + 'static,
     {
         let scoped = Scoped::from_injectable(T::resolve);
         let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Scoped(scoped), name);
+        self.add_provider::<T>(Provider::Scoped(scoped), name)
+    }
+
+    /// Attempts to add a scoped factory or fails if already exists a provider.
+    pub fn try_add_scoped<T, F>(&mut self, f: F)
+    where
+        T: 'static,
+        F: Fn() -> T + 'static,
+    {
+        self.try_add_scoped_with_name::<T, F>(None, f)
+    }
+
+    /// Attempts to add a scoped factory with a name or fails if already exists a provider.
+    pub fn try_add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F)
+    where
+        T: 'static,
+        F: Fn() -> T + 'static,
+    {
+        let key = key_for::<T>(name, ProviderKind::Scoped);
+        if !self.contains(key) {
+            self.add_scoped_with_name(name, f);
+        }
+    }
+
+    /// Attempts to add a singleton or fails if already exists a provider.
+    pub fn try_add_singleton<T>(&mut self, value: T)
+    where
+        T: Send + Sync + 'static,
+    {
+        self.try_add_singleton_with_name::<T>(None, value)
+    }
+
+    /// Attempts to add a singleton with a name or fails if already exists a provider.
+    pub fn try_add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T)
+    where
+        T: Send + Sync + 'static,
+    {
+        let key = key_for::<T>(name, ProviderKind::Singleton);
+        if !self.contains(key) {
+            self.add_singleton_with_name(name, value);
+        }
+    }
+
+    /// Attempts to add an scoped injectable type or fails if already exists a provider.
+    pub fn try_add_deps<T>(&mut self)
+    where
+        T: Injectable + 'static,
+    {
+        self.try_add_deps_with_name::<T>(None)
+    }
+
+    /// Attempts to add an scoped injectable type with a name or fails if already exists a provider.
+    pub fn try_add_deps_with_name<T>(&mut self, name: Option<&str>)
+    where
+        T: Injectable + 'static,
+    {
+        let key = key_for::<T>(name, ProviderKind::Scoped);
+        if !self.contains(key) {
+            self.add_deps_with_name::<T>(name);
+        }
     }
 
     /// Gets a value of the specified type `T` or `None`
@@ -142,7 +201,11 @@ impl<'a> Container<'a> {
         self.providers.get(&key)
     }
 
-    fn add_provider<T: 'static>(&mut self, provider: Provider, name: Option<String>) -> Option<Provider> {
+    fn add_provider<T: 'static>(
+        &mut self,
+        provider: Provider,
+        name: Option<String>,
+    ) -> Option<Provider> {
         let kind = provider.kind();
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, kind, name);
@@ -150,8 +213,8 @@ impl<'a> Container<'a> {
     }
 
     fn get_scoped_internal<T>(&self, name: Option<&str>) -> Option<T>
-        where
-            T: 'static,
+    where
+        T: 'static,
     {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, ProviderKind::Scoped, name);
@@ -169,8 +232,8 @@ impl<'a> Container<'a> {
     }
 
     fn get_singleton_internal<T>(&self, name: Option<&str>) -> Option<Singleton<T>>
-        where
-            T: Send + Sync + 'static,
+    where
+        T: Send + Sync + 'static,
     {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, ProviderKind::Singleton, name);
@@ -183,6 +246,13 @@ impl<'a> Container<'a> {
             }
         }
     }
+}
+
+// Helper
+#[inline]
+fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
+    let type_id = TypeId::of::<T>();
+    InjectionKey::new(type_id, kind, name)
 }
 
 #[cfg(test)]
@@ -236,7 +306,9 @@ mod tests {
 
         assert_eq!(container.len(), 1);
 
-        let value = container.get_singleton_with_name::<i32>("funny number").unwrap();
+        let value = container
+            .get_singleton_with_name::<i32>("funny number")
+            .unwrap();
 
         assert_eq!(*value.lock().unwrap(), 42069_i32);
         assert!(container.get_singleton_with_name::<i32>("number").is_none());
@@ -253,16 +325,22 @@ mod tests {
         assert_eq!(container.len(), 4);
 
         assert!(container.contains(InjectionKey::of::<i32>(ProviderKind::Scoped)));
-        assert!(container.contains(InjectionKey::with_name::<i32>(ProviderKind::Scoped, "number")));
+        assert!(container.contains(InjectionKey::with_name::<i32>(
+            ProviderKind::Scoped,
+            "number"
+        )));
         assert!(container.contains(InjectionKey::of::<String>(ProviderKind::Singleton)));
-        assert!(container.contains(InjectionKey::with_name::<&str>(ProviderKind::Singleton, "bye")));
+        assert!(container.contains(InjectionKey::with_name::<&str>(
+            ProviderKind::Singleton,
+            "bye"
+        )));
     }
 
     #[test]
     fn deps_test() {
         struct Greeter {
             message: String,
-            total_greets: Singleton<usize>
+            total_greets: Singleton<usize>,
         }
 
         impl Greeter {
@@ -275,8 +353,13 @@ mod tests {
         impl Injectable for Greeter {
             fn resolve(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
-                let total_greets = container.get_singleton_with_name::<usize>("counter").unwrap();
-                Greeter { message, total_greets }
+                let total_greets = container
+                    .get_singleton_with_name::<usize>("counter")
+                    .unwrap();
+                Greeter {
+                    message,
+                    total_greets,
+                }
             }
         }
 
@@ -299,7 +382,7 @@ mod tests {
     fn deps_with_name_test() {
         struct Greeter {
             message: String,
-            total_greets: Singleton<usize>
+            total_greets: Singleton<usize>,
         }
 
         impl Greeter {
@@ -312,8 +395,13 @@ mod tests {
         impl Injectable for Greeter {
             fn resolve(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
-                let total_greets = container.get_singleton_with_name::<usize>("counter").unwrap();
-                Greeter { message, total_greets }
+                let total_greets = container
+                    .get_singleton_with_name::<usize>("counter")
+                    .unwrap();
+                Greeter {
+                    message,
+                    total_greets,
+                }
             }
         }
 
@@ -322,8 +410,12 @@ mod tests {
         container.add_deps_with_name::<Greeter>(Some("en_greeter"));
         container.add_scoped_with_name(Some("en_msg"), || String::from("hello"));
 
-        let greeter = container.get_scoped_with_name::<Greeter>("en_greeter").unwrap();
-        assert!(container.get_scoped_with_name::<Greeter>("es_greeter").is_none());
+        let greeter = container
+            .get_scoped_with_name::<Greeter>("en_greeter")
+            .unwrap();
+        assert!(container
+            .get_scoped_with_name::<Greeter>("es_greeter")
+            .is_none());
 
         let s = greeter.greet();
         assert_eq!(s.as_str(), "hello");
@@ -346,22 +438,40 @@ mod tests {
 
         assert_eq!(container.len(), 4);
 
-        assert!(container.remove(InjectionKey::of::<bool>(ProviderKind::Scoped)).is_some());
+        assert!(container
+            .remove(InjectionKey::of::<bool>(ProviderKind::Scoped))
+            .is_some());
 
         // Provider already removed
-        assert!(container.remove(InjectionKey::of::<bool>(ProviderKind::Scoped)).is_none());
+        assert!(container
+            .remove(InjectionKey::of::<bool>(ProviderKind::Scoped))
+            .is_none());
 
         assert_eq!(container.len(), 3);
 
         // Provider is of incorrect kind
-        assert!(container.remove(InjectionKey::of::<String>(ProviderKind::Scoped)).is_none());
+        assert!(container
+            .remove(InjectionKey::of::<String>(ProviderKind::Scoped))
+            .is_none());
 
-        assert!(container.remove(InjectionKey::of::<String>(ProviderKind::Singleton)).is_some());
+        assert!(container
+            .remove(InjectionKey::of::<String>(ProviderKind::Singleton))
+            .is_some());
 
         assert_eq!(container.len(), 2);
 
-        assert!(container.remove(InjectionKey::with_name::<i32>(ProviderKind::Scoped, "number")).is_some());
-        assert!(container.remove(InjectionKey::with_name::<String>(ProviderKind::Singleton, "color")).is_some());
+        assert!(container
+            .remove(InjectionKey::with_name::<i32>(
+                ProviderKind::Scoped,
+                "number"
+            ))
+            .is_some());
+        assert!(container
+            .remove(InjectionKey::with_name::<String>(
+                ProviderKind::Singleton,
+                "color"
+            ))
+            .is_some());
         assert_eq!(container.len(), 0);
     }
 
