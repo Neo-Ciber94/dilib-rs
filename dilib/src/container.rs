@@ -237,14 +237,9 @@ impl<'a> Container<'a> {
     {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, ProviderKind::Singleton, name);
-
-        match self.get_provider(key)? {
-            Provider::Scoped(_) => unreachable!(),
-            Provider::Singleton(value) => {
-                let singleton = value.clone().downcast().ok()?;
-                return Some(singleton);
-            }
-        }
+        self.get_provider(key)
+            .map(|p| p.get_singleton::<T>())
+            .flatten()
     }
 }
 
