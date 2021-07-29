@@ -427,6 +427,107 @@ mod tests {
     }
 
     #[test]
+    fn try_add_scoped_test() {
+        let mut container = Container::new();
+        container.try_add_scoped(|| 100_i32);
+        container.try_add_scoped(|| 300_i32);
+
+        let value = container.get_scoped::<i32>().unwrap();
+        assert_eq!(value, 100_i32);
+    }
+
+    #[test]
+    fn try_add_scoped_with_name_test() {
+        let mut container = Container::new();
+        container.try_add_scoped_with_name(Some("number"), || 100_i32);
+        container.try_add_scoped_with_name(Some("number"), || 300_i32);
+        container.try_add_scoped_with_name(Some("other_number"), || 400_i32);
+
+        let v1 = container.get_scoped_with_name::<i32>("number").unwrap();
+        let v2 = container.get_scoped_with_name::<i32>("other_number").unwrap();
+
+        assert_eq!(v1, 100_i32);
+        assert_eq!(v2, 400_i32);
+    }
+
+    #[test]
+    fn try_add_singleton_test()
+    {
+        let mut container = Container::new();
+        container.try_add_singleton("hello world");
+        container.try_add_singleton("hola mundo");
+
+        let value = container.get_singleton::<&str>().unwrap();
+        assert_eq!(*value.lock().unwrap(), "hello world");
+    }
+
+    #[test]
+    fn try_add_singleton_with_name_test()
+    {
+        let mut container = Container::new();
+        container.try_add_singleton_with_name(Some("greeting"), "hello world");
+        container.try_add_singleton_with_name(Some("greeting"), "hola mundo");
+        container.try_add_singleton_with_name(Some("goodbye"), "bye world");
+
+        let v1 = container.get_singleton_with_name::<&str>("greeting").unwrap();
+        let v2 = container.get_singleton_with_name::<&str>("goodbye").unwrap();
+
+        assert_eq!(*v1.lock().unwrap(), "hello world");
+        assert_eq!(*v2.lock().unwrap(), "bye world");
+    }
+
+    #[test]
+    fn try_add_deps_test() {
+        struct IntWrapper(i32);
+
+        impl Injectable for IntWrapper {
+            fn resolve(container: &Container) -> Self {
+                let value = container.get_scoped::<i32>().unwrap();
+                IntWrapper(value)
+            }
+        }
+
+        let mut container = Container::new();
+        container.try_add_deps::<IntWrapper>();
+
+        let provider = container.add_deps::<IntWrapper>();
+        assert!(provider.is_some());
+
+        container.add_scoped(|| 22_i32);
+
+        let wrapper = container.get_scoped::<IntWrapper>().unwrap();
+        assert_eq!(22_i32, wrapper.0);
+    }
+
+    #[test]
+    fn try_add_deps_with_name_test() {
+        struct IntWrapper(i32);
+
+        impl Injectable for IntWrapper {
+            fn resolve(container: &Container) -> Self {
+                let value = container.get_scoped::<i32>().unwrap();
+                IntWrapper(value)
+            }
+        }
+
+        let mut container = Container::new();
+        container.try_add_deps_with_name::<IntWrapper>(Some("wrapper"));
+
+        let p1 = container.add_deps_with_name::<IntWrapper>(Some("wrapper"));
+        let p2 = container.add_deps_with_name::<IntWrapper>(Some("nothing"));
+
+        assert!(p1.is_some());
+        assert!(p2.is_none());
+
+        container.add_scoped(|| 22_i32);
+
+        let w1 = container.get_scoped_with_name::<IntWrapper>("wrapper").unwrap();
+        let w2 = container.get_scoped_with_name::<IntWrapper>("nothing").unwrap();
+        assert_eq!(22_i32, w1.0);
+        assert_eq!(22_i32, w2.0);
+    }
+
+    #[test]
     fn remove_test() {
         let mut container = Container::new();
         assert_eq!(container.len(), 0);
