@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 use crate::provider::{Provider, ProviderKind};
 use crate::scoped::Scoped;
 use crate::{Injectable, InjectionKey};
+use std::collections::hash_map::{Values, Iter};
 
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<Mutex<T>>;
@@ -193,6 +194,16 @@ impl<'a> Container<'a> {
     /// Removes all the providers in this `Container.
     pub fn clear(&mut self) {
         self.providers.clear();
+    }
+
+    /// Returns an iterator over the providers of this container.
+    pub fn providers(&self) -> Values<'_, InjectionKey<'a>, Provider> {
+        self.providers.values()
+    }
+
+    /// Returns an iterator over the keys and providers of this container.
+    pub fn iter(&self) -> Iter<'_, InjectionKey<'a>, Provider> {
+        self.providers.iter()
     }
 
     ////// Private methods
