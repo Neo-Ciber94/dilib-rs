@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use crate::provider::{Provider, ProviderKind};
 use crate::scoped::Scoped;
 use crate::{Injectable, InjectionKey};
-use std::collections::hash_map::{Values, Iter};
+use std::collections::hash_map::{Iter, Values};
 
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<Mutex<T>>;
@@ -450,15 +450,16 @@ mod tests {
         container.try_add_scoped_with_name(Some("other_number"), || 400_i32);
 
         let v1 = container.get_scoped_with_name::<i32>("number").unwrap();
-        let v2 = container.get_scoped_with_name::<i32>("other_number").unwrap();
+        let v2 = container
+            .get_scoped_with_name::<i32>("other_number")
+            .unwrap();
 
         assert_eq!(v1, 100_i32);
         assert_eq!(v2, 400_i32);
     }
 
     #[test]
-    fn try_add_singleton_test()
-    {
+    fn try_add_singleton_test() {
         let mut container = Container::new();
         container.try_add_singleton("hello world");
         container.try_add_singleton("hola mundo");
@@ -468,15 +469,18 @@ mod tests {
     }
 
     #[test]
-    fn try_add_singleton_with_name_test()
-    {
+    fn try_add_singleton_with_name_test() {
         let mut container = Container::new();
         container.try_add_singleton_with_name(Some("greeting"), "hello world");
         container.try_add_singleton_with_name(Some("greeting"), "hola mundo");
         container.try_add_singleton_with_name(Some("goodbye"), "bye world");
 
-        let v1 = container.get_singleton_with_name::<&str>("greeting").unwrap();
-        let v2 = container.get_singleton_with_name::<&str>("goodbye").unwrap();
+        let v1 = container
+            .get_singleton_with_name::<&str>("greeting")
+            .unwrap();
+        let v2 = container
+            .get_singleton_with_name::<&str>("goodbye")
+            .unwrap();
 
         assert_eq!(*v1.lock().unwrap(), "hello world");
         assert_eq!(*v2.lock().unwrap(), "bye world");
@@ -527,8 +531,12 @@ mod tests {
 
         container.add_scoped(|| 22_i32);
 
-        let w1 = container.get_scoped_with_name::<IntWrapper>("wrapper").unwrap();
-        let w2 = container.get_scoped_with_name::<IntWrapper>("nothing").unwrap();
+        let w1 = container
+            .get_scoped_with_name::<IntWrapper>("wrapper")
+            .unwrap();
+        let w2 = container
+            .get_scoped_with_name::<IntWrapper>("nothing")
+            .unwrap();
         assert_eq!(22_i32, w1.0);
         assert_eq!(22_i32, w2.0);
     }
@@ -594,5 +602,65 @@ mod tests {
 
         container.clear();
         assert_eq!(container.len(), 0);
+    }
+
+    #[test]
+    fn providers_test() {
+        let mut container = Container::new();
+        container.add_scoped(|| true);
+        container.add_singleton(0.25_f32);
+        container.add_scoped(|| 200_usize);
+
+        let providers = container.providers();
+        assert_eq!(3, providers.clone().count());
+
+        let v1 = providers.clone()
+            .filter_map(|p| p.get_scoped::<bool>())
+            .last();
+
+        let v2 = providers.clone()
+            .filter_map(|p| p.get_singleton::<f32>())
+            .last();
+
+        let v3 = providers.clone()
+            .filter_map(|p| p.get_scoped::<usize>())
+            .last();
+
+        assert_eq!(Some(true), v1);
+        assert_eq!(0.25_f32, *v2.unwrap().lock().expect("unable to get singleton"));
+        assert_eq!(Some(200_usize), v3);
+    }
+
+    #[test]
+    fn iter_test() {
+        let mut container = Container::new();
+        container.add_scoped_with_name(Some("truthfulness"), || true);
+        container.add_singleton(2500_i32);
+
+        let iter = container.iter();
+        assert_eq!(2, iter.clone().count());
+
+        let (k1, p1) = iter.clone()
+            .filter(|(k, _)| k.type_id() == TypeId::of::<bool>())
+            .last()
+            .unwrap();
+
+        let (k2, p2) = iter.clone()
+            .filter(|(k, _)| k.type_id() == TypeId::of::<i32>())
+            .last()
+            .unwrap();
+
+        assert_eq!(Some("truthfulness"), k1.name());
+        assert_eq!(ProviderKind::Scoped, k1.kind());
+        assert_eq!(TypeId::of::<bool>(), k1.type_id());
+        assert_eq!(Some(true), p1.get_scoped::<bool>());
+
+        assert_eq!(None, k2.name());
+        assert_eq!(ProviderKind::Singleton, k2.kind());
+        assert_eq!(TypeId::of::<i32>(), k2.type_id());
+        assert_eq!(
+            2500_i32,
+            *p2.get_singleton::<i32>().unwrap().lock().unwrap()
+        );
     }
 }

@@ -2,6 +2,7 @@ use crate::scoped::Scoped;
 use crate::{Container, Injectable, Singleton};
 use std::any::Any;
 use std::sync::Arc;
+use std::fmt::{Debug, Formatter};
 
 /// Represents the type of the provider.
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -78,48 +79,11 @@ impl Provider {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn get_scoped_test(){
-        let mut container = Container::new();
-        container.add_scoped(|| 30_i32);
-        container.add_scoped(|| Some(0.5_f32));
-
-        let v1 = container.get_scoped::<i32>().unwrap();
-        let v2 = container.get_scoped::<Option<f32>>().unwrap();
-
-        assert_eq!(v1, 30_i32);
-        assert_eq!(v2, Some(0.5_f32));
-    }
-
-    #[test]
-    fn get_injectable_test(){
-        #[derive(Debug, Eq, PartialEq)]
-        struct IntWrapper(i32);
-        impl Injectable for IntWrapper {
-            fn resolve(container: &Container) -> Self {
-                let value = container.get_scoped::<i32>().unwrap();
-                IntWrapper(value)
-            }
+impl Debug for Provider {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Provider::Scoped(scoped) => write!(f, "Provider::Scoped({:?})", scoped),
+            Provider::Singleton(_) => write!(f, "Provider::Singleton(..))")
         }
-
-        let mut container = Container::new();
-        container.add_scoped(|| 25_i32);
-        container.add_deps::<IntWrapper>();
-
-        let v1 = container.get_scoped::<IntWrapper>().unwrap();
-        assert_eq!(v1, IntWrapper(25_i32));
-    }
-
-    #[test]
-    fn get_singleton_test(){
-        let mut container = Container::new();
-        container.add_singleton(String::from("red"));
-
-        let value = container.get_singleton::<String>().unwrap();
-        assert_eq!(*value.lock().unwrap(), String::from("red"));
     }
 }
