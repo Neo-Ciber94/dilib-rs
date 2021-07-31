@@ -13,7 +13,7 @@ pub type Singleton<T> = Arc<Mutex<T>>;
 #[derive(Debug, Eq, PartialEq)]
 enum Operation {
     ReplaceIfExist,
-    NoneIfExist
+    NoneIfExist,
 }
 
 /// Represents a store to register and retrieve objects.
@@ -38,7 +38,7 @@ impl<'a> Container<'a> {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.add_scoped_internal(Operation::ReplaceIfExist,None, f)
+        self.add_scoped_internal::<T>(Operation::ReplaceIfExist, Scoped::from_factory(f), None)
     }
 
     /// Adds a scoped factory function with a name, and returns the previously registered
@@ -49,7 +49,11 @@ impl<'a> Container<'a> {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.add_scoped_internal(Operation::ReplaceIfExist, Some(name), f)
+        self.add_scoped_internal::<T>(
+            Operation::ReplaceIfExist,
+            Scoped::from_factory(f),
+            Some(name),
+        )
     }
 
     /// Adds a singleton, and returns the previously registered provider for the given type, if any.
@@ -78,7 +82,11 @@ impl<'a> Container<'a> {
     where
         T: Injectable + 'static,
     {
-        self.add_deps_internal::<T>(Operation::ReplaceIfExist,None)
+        self.add_scoped_internal::<T>(
+            Operation::ReplaceIfExist,
+            Scoped::from_injectable(T::resolve),
+            None,
+        )
     }
 
     /// Adds a scoped named `Injectable` that depends on others providers,
@@ -88,7 +96,11 @@ impl<'a> Container<'a> {
     where
         T: Injectable + 'static,
     {
-        self.add_deps_internal::<T>(Operation::ReplaceIfExist, Some(name))
+        self.add_scoped_internal::<T>(
+            Operation::ReplaceIfExist,
+            Scoped::from_injectable(T::resolve),
+            Some(name),
+        )
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type.
@@ -97,7 +109,7 @@ impl<'a> Container<'a> {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.add_scoped_internal::<T, F>(Operation::NoneIfExist, None, f);
+        self.add_scoped_internal::<T>(Operation::NoneIfExist, Scoped::from_factory(f), None);
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type and name.
@@ -106,7 +118,7 @@ impl<'a> Container<'a> {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.add_scoped_internal::<T, F>(Operation::NoneIfExist, Some(name), f);
+        self.add_scoped_internal::<T>(Operation::NoneIfExist, Scoped::from_factory(f), Some(name));
     }
 
     /// Attempts to add a singleton if there is no provider registered for the given type.
@@ -131,7 +143,11 @@ impl<'a> Container<'a> {
     where
         T: Injectable + 'static,
     {
-        self.add_deps_internal::<T>(Operation::NoneIfExist,None);
+        self.add_scoped_internal::<T>(
+            Operation::NoneIfExist,
+            Scoped::from_injectable(T::resolve),
+            None,
+        );
     }
 
     /// Attempts to add a scoped `Injectable` that depends on others providers
@@ -140,8 +156,11 @@ impl<'a> Container<'a> {
     where
         T: Injectable + 'static,
     {
-        self.add_deps_internal::<T>(Operation::NoneIfExist,Some(name));
-
+        self.add_scoped_internal::<T>(
+            Operation::NoneIfExist,
+            Scoped::from_injectable(T::resolve),
+            Some(name),
+        );
     }
 
     /// Returns a value registered for the given type, or `None`
@@ -213,10 +232,14 @@ impl<'a> Container<'a> {
 
     ////// Helper methods
 
-    fn add_scoped_internal<T, F>(&mut self, op: Operation, name: Option<&str>, f: F) -> Option<Provider>
+    fn add_scoped_internal<T>(
+        &mut self,
+        op: Operation,
+        scoped: Scoped,
+        name: Option<&str>,
+    ) -> Option<Provider>
     where
         T: 'static,
-        F: Fn() -> T + 'static,
     {
         if op == Operation::NoneIfExist {
             let key = key_for::<T>(name, ProviderKind::Scoped);
@@ -225,12 +248,16 @@ impl<'a> Container<'a> {
             }
         }
 
-        let scoped = Scoped::from_factory(f);
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_singleton_internal<T>(&mut self, op: Operation, name: Option<&str>, value: T) -> Option<Provider>
+    fn add_singleton_internal<T>(
+        &mut self,
+        op: Operation,
+        name: Option<&str>,
+        value: T,
+    ) -> Option<Provider>
     where
         T: Send + Sync + 'static,
     {
@@ -244,22 +271,6 @@ impl<'a> Container<'a> {
         let singleton = Arc::new(Mutex::new(value));
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Singleton(singleton), name)
-    }
-
-    fn add_deps_internal<T>(&mut self, op: Operation, name: Option<&str>) -> Option<Provider>
-    where
-        T: Injectable + 'static,
-    {
-        if op == Operation::NoneIfExist {
-            let key = key_for::<T>(name, ProviderKind::Scoped);
-            if self.contains(key) {
-                return None;
-            }
-        }
-
-        let scoped = Scoped::from_injectable(T::resolve);
-        let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
     fn get_scoped_internal<T>(&self, name: Option<&str>) -> Option<T>
