@@ -13,12 +13,12 @@ pub enum ProviderKind {
     Singleton,
 }
 
-/// Wraps an value or factory type.
+/// Providers a mechanism for create a value.
 #[derive(Clone)]
 pub enum Provider {
-    /// A function that produces a new value each time.
+    /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
-    /// A single value shared between various objects.
+    /// A provider that returns the same value each time is required.
     Singleton(Arc<dyn Any + Send + Sync>),
 }
 

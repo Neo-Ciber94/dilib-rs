@@ -10,7 +10,7 @@ use std::collections::hash_map::{Iter, Values};
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<Mutex<T>>;
 
-/// Represents a container for providers.
+/// Represents a store to register and retrieve objects.
 #[derive(Default, Clone)]
 pub struct Container<'a> {
     providers: HashMap<InjectionKey<'a>, Provider>,
@@ -24,7 +24,8 @@ impl<'a> Container<'a> {
         }
     }
 
-    /// Adds a scoped factory function.
+    /// Adds a scoped factory function, and returns the previously registered
+    /// provider for the given type, if any.
     pub fn add_scoped<T, F>(&mut self, f: F) -> Option<Provider>
     where
         T: 'static,
@@ -33,7 +34,8 @@ impl<'a> Container<'a> {
         self.add_scoped_with_name(None, f)
     }
 
-    /// Adds a scoped factory function with a name.
+    /// Adds a scoped factory function with a name, and returns the previously registered
+    /// provider for the given type and name, if any.
     pub fn add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F) -> Option<Provider>
     where
         T: 'static,
@@ -44,7 +46,7 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    /// Adds a singleton.
+    /// Adds a singleton, and returns the previously registered provider for the given type, if any.
     pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
@@ -52,7 +54,8 @@ impl<'a> Container<'a> {
         self.add_singleton_with_name(None, value)
     }
 
-    /// Adds a singleton with a name.
+    /// Adds a singleton with a name, and returns the previously registered provider
+    /// for the given type and name, if any.
     pub fn add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
@@ -62,7 +65,8 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Singleton(singleton), name)
     }
 
-    /// Adds an scoped injectable type.
+    /// Adds a scoped `Injectable` that depends on others providers,
+    /// and returns the previously registered provider, if any.
     pub fn add_deps<T>(&mut self) -> Option<Provider>
     where
         T: Injectable + 'static,
@@ -70,7 +74,8 @@ impl<'a> Container<'a> {
         self.add_deps_with_name::<T>(None)
     }
 
-    /// Adds an scoped injectable type with a name.
+    /// Adds a scoped named `Injectable` that depends on others providers,
+    /// and returns the previously registered provider, if any.
     pub fn add_deps_with_name<T>(&mut self, name: Option<&str>) -> Option<Provider>
     where
         T: Injectable + 'static,
@@ -80,7 +85,7 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    /// Attempts to add a scoped factory or fails if already exists a provider.
+    /// Attempts to add a scoped factory if there is no provider registered for the given type.
     pub fn try_add_scoped<T, F>(&mut self, f: F)
     where
         T: 'static,
@@ -89,7 +94,7 @@ impl<'a> Container<'a> {
         self.try_add_scoped_with_name::<T, F>(None, f)
     }
 
-    /// Attempts to add a scoped factory with a name or fails if already exists a provider.
+    /// Attempts to add a scoped factory if there is no provider registered for the given type and name.
     pub fn try_add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F)
     where
         T: 'static,
@@ -101,7 +106,7 @@ impl<'a> Container<'a> {
         }
     }
 
-    /// Attempts to add a singleton or fails if already exists a provider.
+    /// Attempts to add a singleton if there is no provider registered for the given type.
     pub fn try_add_singleton<T>(&mut self, value: T)
     where
         T: Send + Sync + 'static,
@@ -109,7 +114,7 @@ impl<'a> Container<'a> {
         self.try_add_singleton_with_name::<T>(None, value)
     }
 
-    /// Attempts to add a singleton with a name or fails if already exists a provider.
+    /// Attempts to add a singleton if there is nothing registered for the given type and name.
     pub fn try_add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T)
     where
         T: Send + Sync + 'static,
@@ -120,7 +125,8 @@ impl<'a> Container<'a> {
         }
     }
 
-    /// Attempts to add an scoped injectable type or fails if already exists a provider.
+    /// Attempts to add a scoped `Injectable` that depends on others providers
+    /// if there is no provider register for the given type.
     pub fn try_add_deps<T>(&mut self)
     where
         T: Injectable + 'static,
@@ -128,7 +134,8 @@ impl<'a> Container<'a> {
         self.try_add_deps_with_name::<T>(None)
     }
 
-    /// Attempts to add an scoped injectable type with a name or fails if already exists a provider.
+    /// Attempts to add a scoped `Injectable` that depends on others providers
+    /// if there is no provider register for the given type and name.
     pub fn try_add_deps_with_name<T>(&mut self, name: Option<&str>)
     where
         T: Injectable + 'static,
@@ -139,8 +146,8 @@ impl<'a> Container<'a> {
         }
     }
 
-    /// Gets a value of the specified type `T` or `None`
-    /// if there is no provider for the given type.
+    /// Returns a value registered for the given type, or `None`
+    /// if no provider is register for the given type.
     pub fn get_scoped<T>(&self) -> Option<T>
     where
         T: 'static,
@@ -148,8 +155,8 @@ impl<'a> Container<'a> {
         self.get_scoped_internal::<T>(None)
     }
 
-    /// Gets a value of the specified type `T` and the given name or `None`
-    /// if there is no provider for the given type and/or name.
+    /// Returns a value registered for the given type and name, or `None`
+    /// if no provider is register for the given type and name.
     pub fn get_scoped_with_name<T>(&self, name: &str) -> Option<T>
     where
         T: 'static,
@@ -157,8 +164,8 @@ impl<'a> Container<'a> {
         self.get_scoped_internal::<T>(Some(name))
     }
 
-    /// Gets the singleton value of the specified type or `None`
-    /// if there is no provider for the given type.
+    /// Returns a singleton registered for the given type, or `None`
+    /// if no provider is register for the given type.
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
         T: Send + Sync + 'static,
@@ -166,8 +173,8 @@ impl<'a> Container<'a> {
         self.get_singleton_internal::<T>(None)
     }
 
-    /// Gets a singleton value of the specified type and the given name or `None`
-    /// if there is no provider for the given type and/or name.
+    /// Returns a singleton registered for the given type and name, or `None`
+    /// if no provider is register for the given type and name.
     pub fn get_singleton_with_name<T>(&self, name: &str) -> Option<Singleton<T>>
     where
         T: Send + Sync + 'static,
@@ -191,7 +198,7 @@ impl<'a> Container<'a> {
         self.providers.len()
     }
 
-    /// Removes all the providers in this `Container.
+    /// Removes all the providers in this `Container`.
     pub fn clear(&mut self) {
         self.providers.clear();
     }
@@ -229,7 +236,6 @@ impl<'a> Container<'a> {
     {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, ProviderKind::Scoped, name);
-
         match self.get_provider(key)? {
             Provider::Scoped(f) => {
                 if f.is_factory() {
@@ -614,20 +620,26 @@ mod tests {
         let providers = container.providers();
         assert_eq!(3, providers.clone().count());
 
-        let v1 = providers.clone()
+        let v1 = providers
+            .clone()
             .filter_map(|p| p.get_scoped::<bool>())
             .last();
 
-        let v2 = providers.clone()
+        let v2 = providers
+            .clone()
             .filter_map(|p| p.get_singleton::<f32>())
             .last();
 
-        let v3 = providers.clone()
+        let v3 = providers
+            .clone()
             .filter_map(|p| p.get_scoped::<usize>())
             .last();
 
         assert_eq!(Some(true), v1);
-        assert_eq!(0.25_f32, *v2.unwrap().lock().expect("unable to get singleton"));
+        assert_eq!(
+            0.25_f32,
+            *v2.unwrap().lock().expect("unable to get singleton")
+        );
         assert_eq!(Some(200_usize), v3);
     }
 
@@ -640,12 +652,14 @@ mod tests {
         let iter = container.iter();
         assert_eq!(2, iter.clone().count());
 
-        let (k1, p1) = iter.clone()
+        let (k1, p1) = iter
+            .clone()
             .filter(|(k, _)| k.type_id() == TypeId::of::<bool>())
             .last()
             .unwrap();
 
-        let (k2, p2) = iter.clone()
+        let (k2, p2) = iter
+            .clone()
             .filter(|(k, _)| k.type_id() == TypeId::of::<i32>())
             .last()
             .unwrap();
