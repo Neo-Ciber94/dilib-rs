@@ -10,6 +10,12 @@ use std::collections::hash_map::{Iter, Values};
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<Mutex<T>>;
 
+#[derive(Debug, Eq, PartialEq)]
+enum Operation {
+    ReplaceIfExist,
+    NoneIfExist
+}
+
 /// Represents a store to register and retrieve objects.
 #[derive(Default, Clone)]
 pub struct Container<'a> {
@@ -26,63 +32,63 @@ impl<'a> Container<'a> {
 
     /// Adds a scoped factory function, and returns the previously registered
     /// provider for the given type, if any.
+    #[inline]
     pub fn add_scoped<T, F>(&mut self, f: F) -> Option<Provider>
     where
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.add_scoped_with_name(None, f)
+        self.add_scoped_internal(Operation::ReplaceIfExist,None, f)
     }
 
     /// Adds a scoped factory function with a name, and returns the previously registered
     /// provider for the given type and name, if any.
-    pub fn add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F) -> Option<Provider>
+    #[inline]
+    pub fn add_scoped_with_name<T, F>(&mut self, name: &str, f: F) -> Option<Provider>
     where
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        let scoped = Scoped::from_factory(f);
-        let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Scoped(scoped), name)
+        self.add_scoped_internal(Operation::ReplaceIfExist, Some(name), f)
     }
 
     /// Adds a singleton, and returns the previously registered provider for the given type, if any.
+    #[inline]
     pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
     {
-        self.add_singleton_with_name(None, value)
+        self.add_singleton_internal(Operation::ReplaceIfExist, None, value)
     }
 
     /// Adds a singleton with a name, and returns the previously registered provider
     /// for the given type and name, if any.
-    pub fn add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T) -> Option<Provider>
+    #[inline]
+    pub fn add_singleton_with_name<T>(&mut self, name: &str, value: T) -> Option<Provider>
     where
         T: Send + Sync + 'static,
     {
-        let singleton = Arc::new(Mutex::new(value));
-        let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Singleton(singleton), name)
+        self.add_singleton_internal(Operation::ReplaceIfExist, Some(name), value)
     }
 
     /// Adds a scoped `Injectable` that depends on others providers,
     /// and returns the previously registered provider, if any.
+    #[inline]
     pub fn add_deps<T>(&mut self) -> Option<Provider>
     where
         T: Injectable + 'static,
     {
-        self.add_deps_with_name::<T>(None)
+        self.add_deps_internal::<T>(Operation::ReplaceIfExist,None)
     }
 
     /// Adds a scoped named `Injectable` that depends on others providers,
     /// and returns the previously registered provider, if any.
-    pub fn add_deps_with_name<T>(&mut self, name: Option<&str>) -> Option<Provider>
+    #[inline]
+    pub fn add_deps_with_name<T>(&mut self, name: &str) -> Option<Provider>
     where
         T: Injectable + 'static,
     {
-        let scoped = Scoped::from_injectable(T::resolve);
-        let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Scoped(scoped), name)
+        self.add_deps_internal::<T>(Operation::ReplaceIfExist, Some(name))
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type.
@@ -91,19 +97,16 @@ impl<'a> Container<'a> {
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        self.try_add_scoped_with_name::<T, F>(None, f)
+        self.add_scoped_internal::<T, F>(Operation::NoneIfExist, None, f);
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type and name.
-    pub fn try_add_scoped_with_name<T, F>(&mut self, name: Option<&str>, f: F)
+    pub fn try_add_scoped_with_name<T, F>(&mut self, name: &str, f: F)
     where
         T: 'static,
         F: Fn() -> T + 'static,
     {
-        let key = key_for::<T>(name, ProviderKind::Scoped);
-        if !self.contains(key) {
-            self.add_scoped_with_name(name, f);
-        }
+        self.add_scoped_internal::<T, F>(Operation::NoneIfExist, Some(name), f);
     }
 
     /// Attempts to add a singleton if there is no provider registered for the given type.
@@ -111,18 +114,15 @@ impl<'a> Container<'a> {
     where
         T: Send + Sync + 'static,
     {
-        self.try_add_singleton_with_name::<T>(None, value)
+        self.add_singleton_internal::<T>(Operation::NoneIfExist, None, value);
     }
 
     /// Attempts to add a singleton if there is nothing registered for the given type and name.
-    pub fn try_add_singleton_with_name<T>(&mut self, name: Option<&str>, value: T)
+    pub fn try_add_singleton_with_name<T>(&mut self, name: &str, value: T)
     where
         T: Send + Sync + 'static,
     {
-        let key = key_for::<T>(name, ProviderKind::Singleton);
-        if !self.contains(key) {
-            self.add_singleton_with_name(name, value);
-        }
+        self.add_singleton_internal::<T>(Operation::NoneIfExist, Some(name), value);
     }
 
     /// Attempts to add a scoped `Injectable` that depends on others providers
@@ -131,19 +131,17 @@ impl<'a> Container<'a> {
     where
         T: Injectable + 'static,
     {
-        self.try_add_deps_with_name::<T>(None)
+        self.add_deps_internal::<T>(Operation::NoneIfExist,None);
     }
 
     /// Attempts to add a scoped `Injectable` that depends on others providers
     /// if there is no provider register for the given type and name.
-    pub fn try_add_deps_with_name<T>(&mut self, name: Option<&str>)
+    pub fn try_add_deps_with_name<T>(&mut self, name: &str)
     where
         T: Injectable + 'static,
     {
-        let key = key_for::<T>(name, ProviderKind::Scoped);
-        if !self.contains(key) {
-            self.add_deps_with_name::<T>(name);
-        }
+        self.add_deps_internal::<T>(Operation::NoneIfExist,Some(name));
+
     }
 
     /// Returns a value registered for the given type, or `None`
@@ -213,21 +211,55 @@ impl<'a> Container<'a> {
         self.providers.iter()
     }
 
-    ////// Private methods
+    ////// Helper methods
 
-    fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
-        self.providers.get(&key)
+    fn add_scoped_internal<T, F>(&mut self, op: Operation, name: Option<&str>, f: F) -> Option<Provider>
+    where
+        T: 'static,
+        F: Fn() -> T + 'static,
+    {
+        if op == Operation::NoneIfExist {
+            let key = key_for::<T>(name, ProviderKind::Scoped);
+            if self.contains(key) {
+                return None;
+            }
+        }
+
+        let scoped = Scoped::from_factory(f);
+        let name = name.map(|s| s.to_string());
+        self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_provider<T: 'static>(
-        &mut self,
-        provider: Provider,
-        name: Option<String>,
-    ) -> Option<Provider> {
-        let kind = provider.kind();
-        let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, kind, name);
-        self.providers.insert(key, provider)
+    fn add_singleton_internal<T>(&mut self, op: Operation, name: Option<&str>, value: T) -> Option<Provider>
+    where
+        T: Send + Sync + 'static,
+    {
+        if op == Operation::NoneIfExist {
+            let key = key_for::<T>(name, ProviderKind::Singleton);
+            if self.contains(key) {
+                return None;
+            }
+        }
+
+        let singleton = Arc::new(Mutex::new(value));
+        let name = name.map(|s| s.to_string());
+        self.add_provider::<T>(Provider::Singleton(singleton), name)
+    }
+
+    fn add_deps_internal<T>(&mut self, op: Operation, name: Option<&str>) -> Option<Provider>
+    where
+        T: Injectable + 'static,
+    {
+        if op == Operation::NoneIfExist {
+            let key = key_for::<T>(name, ProviderKind::Scoped);
+            if self.contains(key) {
+                return None;
+            }
+        }
+
+        let scoped = Scoped::from_injectable(T::resolve);
+        let name = name.map(|s| s.to_string());
+        self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
     fn get_scoped_internal<T>(&self, name: Option<&str>) -> Option<T>
@@ -258,6 +290,21 @@ impl<'a> Container<'a> {
             .map(|p| p.get_singleton::<T>())
             .flatten()
     }
+
+    fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
+        self.providers.get(&key)
+    }
+
+    fn add_provider<T: 'static>(
+        &mut self,
+        provider: Provider,
+        name: Option<String>,
+    ) -> Option<Provider> {
+        let kind = provider.kind();
+        let type_id = TypeId::of::<T>();
+        let key = InjectionKey::new(type_id, kind, name);
+        self.providers.insert(key, provider)
+    }
 }
 
 // Helper
@@ -287,7 +334,7 @@ mod tests {
     #[test]
     fn scoped_with_name_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name(Some("greet"), || "hello world"); // &str
+        container.add_scoped_with_name("greet", || "hello world"); // &str
 
         assert_eq!(container.len(), 1);
 
@@ -314,7 +361,7 @@ mod tests {
     #[test]
     fn singleton_with_name_test() {
         let mut container = Container::new();
-        container.add_singleton_with_name(Some("funny number"), 42069_i32);
+        container.add_singleton_with_name("funny number", 42069_i32);
 
         assert_eq!(container.len(), 1);
 
@@ -330,9 +377,9 @@ mod tests {
     fn contains_test() {
         let mut container = Container::new();
         container.add_scoped(|| 200_i32);
-        container.add_scoped_with_name(Some("number"), || 999_i32);
+        container.add_scoped_with_name("number", || 999_i32);
         container.add_singleton(String::from("have a good day"));
-        container.add_singleton_with_name(Some("bye"), "adios amigo");
+        container.add_singleton_with_name("bye", "adios amigo");
 
         assert_eq!(container.len(), 4);
 
@@ -376,9 +423,9 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name(Some("counter"), 0_usize);
+        container.add_singleton_with_name("counter", 0_usize);
         container.add_deps::<Greeter>();
-        container.add_scoped_with_name(Some("en_msg"), || String::from("hello"));
+        container.add_scoped_with_name("en_msg", || String::from("hello"));
 
         let greeter = container.get_scoped::<Greeter>().unwrap();
         let s = greeter.greet();
@@ -418,9 +465,9 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name(Some("counter"), 0_usize);
-        container.add_deps_with_name::<Greeter>(Some("en_greeter"));
-        container.add_scoped_with_name(Some("en_msg"), || String::from("hello"));
+        container.add_singleton_with_name("counter", 0_usize);
+        container.add_deps_with_name::<Greeter>("en_greeter");
+        container.add_scoped_with_name("en_msg", || String::from("hello"));
 
         let greeter = container
             .get_scoped_with_name::<Greeter>("en_greeter")
@@ -451,9 +498,9 @@ mod tests {
     #[test]
     fn try_add_scoped_with_name_test() {
         let mut container = Container::new();
-        container.try_add_scoped_with_name(Some("number"), || 100_i32);
-        container.try_add_scoped_with_name(Some("number"), || 300_i32);
-        container.try_add_scoped_with_name(Some("other_number"), || 400_i32);
+        container.try_add_scoped_with_name("number", || 100_i32);
+        container.try_add_scoped_with_name("number", || 300_i32);
+        container.try_add_scoped_with_name("other_number", || 400_i32);
 
         let v1 = container.get_scoped_with_name::<i32>("number").unwrap();
         let v2 = container
@@ -477,9 +524,9 @@ mod tests {
     #[test]
     fn try_add_singleton_with_name_test() {
         let mut container = Container::new();
-        container.try_add_singleton_with_name(Some("greeting"), "hello world");
-        container.try_add_singleton_with_name(Some("greeting"), "hola mundo");
-        container.try_add_singleton_with_name(Some("goodbye"), "bye world");
+        container.try_add_singleton_with_name("greeting", "hello world");
+        container.try_add_singleton_with_name("greeting", "hola mundo");
+        container.try_add_singleton_with_name("goodbye", "bye world");
 
         let v1 = container
             .get_singleton_with_name::<&str>("greeting")
@@ -527,10 +574,10 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.try_add_deps_with_name::<IntWrapper>(Some("wrapper"));
+        container.try_add_deps_with_name::<IntWrapper>("wrapper");
 
-        let p1 = container.add_deps_with_name::<IntWrapper>(Some("wrapper"));
-        let p2 = container.add_deps_with_name::<IntWrapper>(Some("nothing"));
+        let p1 = container.add_deps_with_name::<IntWrapper>("wrapper");
+        let p2 = container.add_deps_with_name::<IntWrapper>("nothing");
 
         assert!(p1.is_some());
         assert!(p2.is_none());
@@ -554,8 +601,8 @@ mod tests {
 
         container.add_scoped(|| true);
         container.add_singleton(String::from("blue"));
-        container.add_scoped_with_name(Some("number"), || 200_i32);
-        container.add_singleton_with_name(Some("color"), String::from("red"));
+        container.add_scoped_with_name("number", || 200_i32);
+        container.add_singleton_with_name("color", String::from("red"));
 
         assert_eq!(container.len(), 4);
 
@@ -646,7 +693,7 @@ mod tests {
     #[test]
     fn iter_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name(Some("truthfulness"), || true);
+        container.add_scoped_with_name("truthfulness", || true);
         container.add_singleton(2500_i32);
 
         let iter = container.iter();
