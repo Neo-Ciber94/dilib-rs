@@ -1,3 +1,6 @@
+pub mod macros;
+pub use macros::*;
+
 mod injectable;
 pub use injectable::*;
 

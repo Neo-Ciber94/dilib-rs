@@ -320,11 +320,11 @@ impl<'a> Container<'a> {
             .flatten()
     }
 
-    fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
+    pub(crate) fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
         self.providers.get(&key)
     }
 
-    fn add_provider<T: 'static>(
+    pub(crate) fn add_provider<T: 'static>(
         &mut self,
         provider: Provider,
         name: Option<String>,
