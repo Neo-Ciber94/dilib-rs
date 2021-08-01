@@ -1,9 +1,8 @@
-use dilib::Singleton;
-use dilib::derive::*;
+use dilib::{Singleton, Injectable};
 struct InjectStruct {
     a: Singleton<usize>,
     b: String,
-    c: bool,
+    c: Box<bool>,
 }
 impl dilib::Injectable for InjectStruct {
     fn resolve(container: &dilib::Container) -> Self {
@@ -13,9 +12,9 @@ impl dilib::Injectable for InjectStruct {
         let b: String = container
             .get_scoped()
             .expect("cannot get scoped value of type `String`");
-        let c: bool = container
+        let c: Box<bool> = container
             .get_scoped()
-            .expect("cannot get scoped value of type `bool`");
+            .expect("cannot get scoped value of type `Box<bool>`");
         InjectStruct { a, b, c }
     }
 }

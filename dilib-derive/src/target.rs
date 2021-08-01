@@ -12,6 +12,18 @@ use crate::constructor::{TargetConstructor, TargetConstructorTokens};
 use crate::dependency::{DefaultValue, Dependency, Scope, TargetField};
 use crate::utils::InjectError;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum StructKind {
+    // `MyStruct` or `MyStruct{}`
+    Unit,
+
+    // MyStruct { a: i32, b: String }
+    Named,
+
+    // MyStruct(i32, String)
+    Tuple,
+}
+
 #[derive(Debug)]
 pub struct DeriveInjectable {
     target_type: Ident,
@@ -19,7 +31,7 @@ pub struct DeriveInjectable {
     constructor: Option<TargetConstructor>,
     deps: Vec<Dependency>,
     generics: Generics,
-    is_unit: bool,
+    kind: StructKind
 }
 
 impl DeriveInjectable {
@@ -29,7 +41,7 @@ impl DeriveInjectable {
         constructor: Option<TargetConstructor>,
         deps: Vec<Dependency>,
         generics: Generics,
-        is_unit: bool,
+        kind: StructKind,
     ) -> Self {
         DeriveInjectable {
             target_type,
@@ -37,7 +49,7 @@ impl DeriveInjectable {
             constructor,
             deps,
             generics,
-            is_unit,
+            kind,
         }
     }
 
@@ -49,7 +61,7 @@ impl DeriveInjectable {
         let generic_types = self.generics_types();
         let where_clause = self.where_clause();
 
-        let body = if self.is_unit {
+        let body = if self.kind == StructKind::Unit {
             quote! { #target_type }
         } else {
             if let Some(constructor) = &self.constructor {
@@ -64,8 +76,17 @@ impl DeriveInjectable {
             } else {
                 let params = deps.iter().map(|s| s.var_name());
 
-                // Type { params }
-                quote! { #target_type { #(#params),* } }
+                match self.kind {
+                    StructKind::Named => {
+                        // Type { params }
+                        quote! { #target_type { #(#params),* } }
+                    }
+                    StructKind::Tuple => {
+                        // Type ( params )
+                        quote! { #target_type ( #(#params),* ) }
+                    }
+                    StructKind::Unit => unreachable!(),
+                }
             }
         };
 
@@ -79,17 +100,31 @@ impl DeriveInjectable {
         }
     }
 
-    // Generics with constrains: <T: Trait, B: OtherTrait>
+    // Generics for: impl<A, B, C>
     fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
-            let params = &self.generics.params;
-            Some(quote! { < #params > })
+            let params = self.generics.params
+                .iter()
+                .cloned()
+                .map(|t| {
+                    match t {
+                        // We remove `<T = type>` which is not allowed in `impl<A, B, C>`
+                        GenericParam::Type(mut ty) => {
+                            ty.eq_token = None;
+                            ty.default = None;
+                            GenericParam::Type(ty)
+                        }
+                        _ => t
+                    }
+                });
+
+            Some(quote! { < #(#params),* > })
         } else {
             None
         }
     }
 
-    // Generic types without contains: <T, B>
+    // Generic types for: MyStruct<A, B, C>
     fn generics_types(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
             let types = self
@@ -132,9 +167,9 @@ pub fn parse_derive_injectable(input: DeriveInput) -> DeriveInjectable {
             let container = get_container_identifier(data_struct);
             let deps = get_deps(&data_struct.fields);
             let generics = input.generics.clone();
-            let is_unit = data_struct.fields == Fields::Unit;
+            let kind = get_struct_kind(data_struct);
 
-            DeriveInjectable::new(target_type, container, constructor, deps, generics, is_unit)
+            DeriveInjectable::new(target_type, container, constructor, deps, generics, kind)
         }
     }
 }
@@ -284,6 +319,14 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
             None
         }
         _ => None,
+    }
+}
+
+fn get_struct_kind(data_struct: &DataStruct) -> StructKind {
+    match data_struct.fields {
+        Fields::Named(_) => StructKind::Named,
+        Fields::Unnamed(_) => StructKind::Tuple,
+        Fields::Unit => StructKind::Unit
     }
 }
 
