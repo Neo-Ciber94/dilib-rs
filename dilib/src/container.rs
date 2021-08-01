@@ -104,6 +104,7 @@ impl<'a> Container<'a> {
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type.
+    #[inline]
     pub fn try_add_scoped<T, F>(&mut self, f: F)
     where
         T: 'static,
@@ -113,6 +114,7 @@ impl<'a> Container<'a> {
     }
 
     /// Attempts to add a scoped factory if there is no provider registered for the given type and name.
+    #[inline]
     pub fn try_add_scoped_with_name<T, F>(&mut self, name: &str, f: F)
     where
         T: 'static,
@@ -122,6 +124,7 @@ impl<'a> Container<'a> {
     }
 
     /// Attempts to add a singleton if there is no provider registered for the given type.
+    #[inline]
     pub fn try_add_singleton<T>(&mut self, value: T)
     where
         T: Send + Sync + 'static,
@@ -130,6 +133,7 @@ impl<'a> Container<'a> {
     }
 
     /// Attempts to add a singleton if there is nothing registered for the given type and name.
+    #[inline]
     pub fn try_add_singleton_with_name<T>(&mut self, name: &str, value: T)
     where
         T: Send + Sync + 'static,
@@ -139,6 +143,7 @@ impl<'a> Container<'a> {
 
     /// Attempts to add a scoped `Injectable` that depends on others providers
     /// if there is no provider register for the given type.
+    #[inline]
     pub fn try_add_deps<T>(&mut self)
     where
         T: Injectable + 'static,
@@ -152,6 +157,7 @@ impl<'a> Container<'a> {
 
     /// Attempts to add a scoped `Injectable` that depends on others providers
     /// if there is no provider register for the given type and name.
+    #[inline]
     pub fn try_add_deps_with_name<T>(&mut self, name: &str)
     where
         T: Injectable + 'static,
@@ -165,6 +171,7 @@ impl<'a> Container<'a> {
 
     /// Returns a value registered for the given type, or `None`
     /// if no provider is register for the given type.
+    #[inline]
     pub fn get_scoped<T>(&self) -> Option<T>
     where
         T: 'static,
@@ -174,6 +181,7 @@ impl<'a> Container<'a> {
 
     /// Returns a value registered for the given type and name, or `None`
     /// if no provider is register for the given type and name.
+    #[inline]
     pub fn get_scoped_with_name<T>(&self, name: &str) -> Option<T>
     where
         T: 'static,
@@ -183,6 +191,7 @@ impl<'a> Container<'a> {
 
     /// Returns a singleton registered for the given type, or `None`
     /// if no provider is register for the given type.
+    #[inline]
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
         T: Send + Sync + 'static,
@@ -192,6 +201,7 @@ impl<'a> Container<'a> {
 
     /// Returns a singleton registered for the given type and name, or `None`
     /// if no provider is register for the given type and name.
+    #[inline]
     pub fn get_singleton_with_name<T>(&self, name: &str) -> Option<Singleton<T>>
     where
         T: Send + Sync + 'static,
@@ -213,6 +223,11 @@ impl<'a> Container<'a> {
     /// Returns the number of providers in this `Container`.
     pub fn len(&self) -> usize {
         self.providers.len()
+    }
+
+    /// Returns `true` is this container have no providers.
+    pub fn is_empty(&self) -> bool {
+        self.providers.is_empty()
     }
 
     /// Removes all the providers in this `Container`.
@@ -318,6 +333,13 @@ impl<'a> Container<'a> {
     }
 }
 
+// Helper
+#[inline(always)]
+fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
+    let type_id = TypeId::of::<T>();
+    InjectionKey::new(type_id, kind, name)
+}
+
 /*
 SAFETY: `Container<'a>` holds type `Provider::Scoped(Scoped)`
 where `Scoped` holds a `BoxClosure` which wraps a `dyn Fn() -> Box<dyn Any>`.
@@ -326,16 +348,8 @@ Although `dyn Fn() -> Box<dyn Any>` is not marked as `Send + `Sync` can
 be used for different threads because don't capture local variables
 and only acts as a factory function returning a value.
 */
-
 unsafe impl Send for Container<'_> {}
 unsafe impl Sync for Container<'_> {}
-
-// Helper
-#[inline]
-fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
-    let type_id = TypeId::of::<T>();
-    InjectionKey::new(type_id, kind, name)
-}
 
 #[cfg(test)]
 mod tests {
