@@ -10,9 +10,12 @@ use std::collections::hash_map::{Iter, Values};
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<Mutex<T>>;
 
+// Insertion operation when adding new providers
 #[derive(Debug, Eq, PartialEq)]
 enum Operation {
+    // Replace the provider if exist
     ReplaceIfExist,
+    // Don't insert if the provider exist
     NoneIfExist,
 }
 
