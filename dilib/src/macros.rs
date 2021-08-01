@@ -9,7 +9,7 @@
 /// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// use dilib::Container;
 /// use dilib::macros::*;
 ///
