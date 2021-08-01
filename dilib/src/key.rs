@@ -30,12 +30,12 @@ impl<'a> InjectionKey<'a> {
     }
 
     /// Constructs a new `InjectionKey` from the specified type `T` and provider kind.
-    pub fn of<T: 'static>(kind: ProviderKind) -> Self {
+    pub fn of<T: ?Sized + 'static>(kind: ProviderKind) -> Self {
         Self::new::<String>(TypeId::of::<T>(), kind, None)
     }
 
     /// Constructs a new `InjectionKey` from the specified type `T`, provider kind and name.
-    pub fn with_name<T: 'static>(kind: ProviderKind, name: &str) -> Self {
+    pub fn with_name<T: ?Sized + 'static>(kind: ProviderKind, name: &str) -> Self {
         Self::new(TypeId::of::<T>(), kind, Some(name.to_string()))
     }
 
