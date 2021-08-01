@@ -6,6 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/dev/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dilib-derive/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dilib/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test_suite/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test_suite/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/dilib/target" />
       <excludeFolder url="file://$MODULE_DIR$/dev/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />

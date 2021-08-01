@@ -1,0 +1,10 @@
+[package]
+name = "test_suite"
+version = "0.1.0"
+authors = ["Freddy L."]
+edition = "2018"
+publish = false
+
+[dependencies]
+macrotest = "1.0.8"
+dilib = { path = "../dilib", features=["derive"] }
