@@ -7,4 +7,5 @@ publish = false
 
 [dependencies]
 macrotest = "1.0.8"
+trybuild = "1.0.43"
 dilib = { path = "../dilib", features=["derive"] }

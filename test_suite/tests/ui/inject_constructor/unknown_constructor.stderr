@@ -1,0 +1,10 @@
+error[E0599]: no function or associated item named `new` found for struct `MyStruct` in the current scope
+ --> $DIR/unknown_constructor.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^ function or associated item not found in `MyStruct`
+4 | #[inject(constructor="new(a, b)")]
+5 | struct MyStruct {
+  | --------------- function or associated item `new` not found for this
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,0 +1,18 @@
+error[E0308]: mismatched types
+ --> $DIR/invalid_types.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^ expected `i32`, found struct `String`
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+ --> $DIR/invalid_types.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^
+  |          |
+  |          expected struct `String`, found `i32`
+  |          help: try using a conversion method: `Injectable.to_string()`
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)

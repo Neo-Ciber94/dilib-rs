@@ -1,0 +1,15 @@
+error[E0425]: cannot find value `x` in this scope
+ --> $DIR/unknown_fields.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^ help: a local variable with a similar name exists: `a`
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0425]: cannot find value `y` in this scope
+ --> $DIR/unknown_fields.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^ help: a local variable with a similar name exists: `a`
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)

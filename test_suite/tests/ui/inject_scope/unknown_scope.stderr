@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> $DIR/unknown_scope.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^
+  |
+  = help: message: invalid scope value: `unique`, expected "singleton" or "scoped"
