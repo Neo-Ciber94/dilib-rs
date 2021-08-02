@@ -1,11 +1,11 @@
 /// Helper macro to bind a `trait` to it's implementation in a `Container` as scoped.
 ///
 /// # Usage
-/// `register_scoped_trait!(container, trait, name, implementation)`
+/// `register_scoped_trait!(container, name, trait, implementation)`
 ///
 /// - `container`: identifier of the container to add the implementation.
-/// - `trait`: the type of the trait.
 /// - `name`: optional name to store the provider.
+/// - `trait`: the type of the trait.
 /// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
 ///
 /// # Example
@@ -59,7 +59,7 @@ macro_rules! register_scoped_trait {
         })
     }};
 
-    ($container:ident, $trait_type:ident, $name:literal, $impl_expr:expr) => {{
+    ($container:ident, $name:literal, $trait_type:ident, $impl_expr:expr) => {{
         $container.add_scoped_with_name($name, || -> std::boxed::Box<dyn $trait_type> {
             let ret: std::boxed::Box<dyn $trait_type> = {
                 let value = $impl_expr;
@@ -74,7 +74,7 @@ macro_rules! register_scoped_trait {
         $crate::register_scoped_trait!($container, $trait_type, $impl_expr);
     }};
 
-    ($container:ident, $trait_type:ident, $name:literal, { $impl_expr:expr }) => {{
+    ($container:ident, $name:literal, $trait_type:ident, { $impl_expr:expr }) => {{
         $crate::register_scoped_trait!($container, $trait_type, $name, $impl_expr);
     }};
 }
@@ -109,7 +109,7 @@ macro_rules! register_singleton_trait {
         $container.add_singleton::<std::boxed::Box<SafeTrait>>(x);
     }};
 
-    ($container:ident, $trait_type:ident, $name:literal, $impl_expr:expr) => {{
+    ($container:ident, $name:literal, $trait_type:ident, $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type + Send + Sync;
         let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x);
@@ -119,7 +119,7 @@ macro_rules! register_singleton_trait {
         $crate::register_singleton_trait!($container, $trait_type, $impl_expr);
     }};
 
-    ($container:ident, $trait_type:ident, $name:literal, { $impl_expr:expr }) => {{
+    ($container:ident, $name:literal, $trait_type:ident, { $impl_expr:expr }) => {{
         $crate::register_singleton_trait!($container, $trait_type, $name:literal, $impl_expr);
     }};
 }
