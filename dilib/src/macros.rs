@@ -1,4 +1,4 @@
-/// Helper macro to bind a `trait` with it's implementation in a `Container`.
+/// Helper macro to bind a `trait` to it's implementation in a `Container` as scoped.
 ///
 /// # Usage
 /// `register_scoped_trait!(container, trait, name, implementation)`
@@ -9,7 +9,7 @@
 /// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
 ///
 /// # Example
-/// ```ignore
+/// ```
 /// use dilib::Container;
 /// use dilib::macros::*;
 ///
@@ -75,7 +75,7 @@ macro_rules! register_scoped_trait {
     }};
 }
 
-/// Helper macro to get the implementation of a `trait` in a `Container`.
+/// Helper macro to get the implementation of a `trait` in a `Container` as scoped.
 ///
 /// # Usage
 /// `get_scoped_trait!(container, trait, name)`
@@ -92,6 +92,46 @@ macro_rules! get_scoped_trait {
 
     ($container:ident, $trait_type:ident, $name:literal) => {{
         let ret: std::option::Option<Box<dyn $trait_type>> = $container.get_scoped_with_name($name);
+        ret
+    }};
+}
+
+/// Helper macro to bind a `trait` to it's implementation in a `Container` as a singleton.
+#[macro_export]
+macro_rules! register_singleton_trait {
+    ($container:ident, $trait_type:ident, $impl_expr:expr) => {{
+        type SafeTrait = dyn $trait_type + Send + Sync;
+        let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
+        $container.add_singleton::<std::boxed::Box<SafeTrait>>(x);
+    }};
+
+    ($container:ident, $trait_type:ident, $name:literal, $impl_expr:expr) => {{
+        type SafeTrait = dyn $trait_type + Send + Sync;
+        let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
+        $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x);
+    }};
+
+    ($container:ident, $trait_type:ident, { $impl_expr:expr }) => {{
+        $crate::register_singleton_trait!($container, $trait_type, $impl_expr);
+    }};
+
+    ($container:ident, $trait_type:ident, $name:literal, { $impl_expr:expr }) => {{
+        $crate::register_singleton_trait!($container, $trait_type, $name:literal, $impl_expr);
+    }};
+}
+
+/// Helper macro to get the implementation of a `trait` in a `Container` as a singleton.
+#[macro_export]
+macro_rules! get_singleton_trait {
+    ($container:ident, $trait_type:ident) => {{
+        type SafeTrait = dyn $trait_type + Send + Sync;
+        let ret = $container.get_singleton::<std::boxed::Box<SafeTrait>>();
+        ret
+    }};
+
+    ($container:ident, $trait_type:ident, $name:literal) => {{
+        type SafeTrait = dyn $trait_type + Send + Sync;
+        let ret = $container.get_singleton_with_name::<std::boxed::Box<SafeTrait>>($name);
         ret
     }};
 }
