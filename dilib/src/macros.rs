@@ -10,8 +10,10 @@
 ///
 /// # Example
 /// ```
-/// use dilib::Container;
+/// #[macro_use]
+/// extern crate dilib;
 /// use dilib::macros::*;
+/// use dilib::Container;
 ///
 /// trait Greet {
 ///     fn greet(&self) -> &'static str;
@@ -31,16 +33,18 @@
 ///     }
 /// }
 ///
-/// let mut container = Container::new();
-/// register_scoped_trait!(container, Greet, "hello", Hello);
-/// register_scoped_trait!(container, Greet, "bye", { Bye });
+/// fn main() {
+///     let mut container = Container::new();
+///     register_scoped_trait!(container, Greet, "hello", Hello);
+///     register_scoped_trait!(container, Greet, "bye", { Bye });
 ///
-/// // Returns a `Box<dyn Greet>`
-/// let hello = get_scoped_trait!(container, Greet, "hello");
-/// let bye = get_scoped_trait!(container, Greet, "bye");
+///     // Returns a `Box<dyn Greet>`
+///     let hello = get_scoped_trait!(container, Greet, "hello").unwrap();
+///     let bye = get_scoped_trait!(container, Greet, "bye").unwrap();
 ///
-/// assert!(hello.greet(), "hello world");
-/// assert!(bye.greet(), "bye world");
+///     assert_eq!(hello.greet(), "hello world");
+///     assert_eq!(bye.greet(), "bye world");
+/// }
 /// ```
 #[macro_export]
 macro_rules! register_scoped_trait {
