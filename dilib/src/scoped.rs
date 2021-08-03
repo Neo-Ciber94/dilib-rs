@@ -83,6 +83,15 @@ enum BoxClosure {
     FnArg(Arc<dyn Fn(&Container) -> Box<dyn Any>>),
 }
 
+
+// SAFETY: `BoxClosure` can be send to other threads
+// because it don't hold an inner mutable state, a call just returns a value.
+unsafe impl Send for BoxClosure {}
+
+// SAFETY: `BoxClosure` is readonly, is safe for multiple threads to call the inner function
+// because it don't mutates, a call just returns a value.
+unsafe impl Sync for BoxClosure {}
+
 impl Debug for BoxClosure {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

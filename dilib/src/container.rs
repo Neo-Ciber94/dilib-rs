@@ -343,17 +343,6 @@ fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
     InjectionKey::new(type_id, kind, name)
 }
 
-/*
-SAFETY: `Container<'a>` holds type `Provider::Scoped(Scoped)`
-where `Scoped` holds a `BoxClosure` which wraps a `dyn Fn() -> Box<dyn Any>`.
-
-Although `dyn Fn() -> Box<dyn Any>` is not marked as `Send + `Sync` can
-be used for different threads because don't capture local variables
-and only acts as a factory function returning a value.
-*/
-unsafe impl Send for Container<'_> {}
-unsafe impl Sync for Container<'_> {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
