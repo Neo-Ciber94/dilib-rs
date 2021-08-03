@@ -35,8 +35,8 @@
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_scoped_trait!(container, Greet, "hello", Hello);
-///     register_scoped_trait!(container, Greet, "bye", { Bye });
+///     register_scoped_trait!(container, "hello", Greet, Hello);
+///     register_scoped_trait!(container, "bye", Greet, { Bye });
 ///
 ///     // Returns a `Box<dyn Greet>`
 ///     let hello = get_scoped_trait!(container, Greet, "hello").unwrap();
@@ -101,18 +101,61 @@ macro_rules! get_scoped_trait {
 }
 
 /// Helper macro to bind a `trait` to it's implementation in a `Container` as a singleton.
+///
+/// # Usage
+/// `register_singleton_trait!(container, name, trait, implementation)`
+///
+/// - `container`: identifier of the container to add the implementation.
+/// - `name`: optional name to store the provider.
+/// - `trait`: the type of the trait.
+/// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
+///
+/// # Example
+/// ```
+/// #[macro_use]
+/// extern crate dilib;
+/// use dilib::macros::*;
+/// use dilib::Container;
+///
+/// trait BinaryOp {
+///     fn calc(&self, lhs: i32, rhs: i32) -> i32;
+/// }
+///
+/// struct Sum;
+/// struct Prod;
+///
+/// impl BinaryOp for Sum {
+///     fn calc(&self, lhs: i32, rhs: i32) -> i32 { lhs + rhs }
+/// }
+///
+/// impl BinaryOp for Prod {
+///     fn calc(&self, lhs: i32, rhs: i32) -> i32 { lhs * rhs }
+/// }
+///
+/// fn main() {
+///     let mut container = Container::new();
+///     let c = register_singleton_trait!(container, "sum", BinaryOp, Sum);
+///     register_singleton_trait!(container, "prod", BinaryOp, Prod);
+///
+///     let sum = get_singleton_trait!(container, BinaryOp, "sum").unwrap();
+///     let prod = get_singleton_trait!(container, BinaryOp, "prod").unwrap();
+///
+///     assert_eq!(5, sum.lock().unwrap().calc(2, 3));
+///     assert_eq!(6, prod.lock().unwrap().calc(3, 2));
+/// }
+/// ```
 #[macro_export]
 macro_rules! register_singleton_trait {
     ($container:ident, $trait_type:ident, $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type + Send + Sync;
         let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
-        $container.add_singleton::<std::boxed::Box<SafeTrait>>(x);
+        $container.add_singleton::<std::boxed::Box<SafeTrait>>(x)
     }};
 
     ($container:ident, $name:literal, $trait_type:ident, $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type + Send + Sync;
         let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
-        $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x);
+        $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x)
     }};
 
     ($container:ident, $trait_type:ident, { $impl_expr:expr }) => {{
@@ -125,6 +168,13 @@ macro_rules! register_singleton_trait {
 }
 
 /// Helper macro to get the implementation of a `trait` in a `Container` as a singleton.
+///
+/// # Usage
+/// `get_singleton_trait!(container, trait, name)`
+///
+/// - `container`: the container to get the implementation of the trait.
+/// - `trait`: the trait to get the implementation from.
+/// - `name`: optional name of the implementation.
 #[macro_export]
 macro_rules! get_singleton_trait {
     ($container:ident, $trait_type:ident) => {{
