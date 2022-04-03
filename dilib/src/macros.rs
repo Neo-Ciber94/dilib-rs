@@ -13,8 +13,7 @@
 /// ```rust
 /// #[macro_use]
 /// extern crate dilib;
-/// use dilib::macros::*;
-/// use dilib::Container;
+/// use dilib::*;
 ///
 /// trait Greet {
 ///    fn greet(&self) -> &str;
@@ -39,8 +38,7 @@
 /// ```rust
 /// #[macro_use]
 /// extern crate dilib;
-/// use dilib::macros::*;
-/// use dilib::Container;
+/// use dilib::*;
 ///
 /// trait Greet {
 ///     fn greet(&self) -> &'static str;
@@ -143,8 +141,7 @@ macro_rules! get_scoped_trait {
 /// ```rust
 /// #[macro_use]
 /// extern crate dilib;
-/// use dilib::macros::*;
-/// use dilib::Container;
+/// use dilib::*;
 ///
 /// trait Greet {
 ///    fn greet(&self) -> &str;

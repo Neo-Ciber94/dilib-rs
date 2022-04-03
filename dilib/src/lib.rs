@@ -63,7 +63,7 @@
 //! assert_eq!(*c2.val.lock().unwrap(), 12);
 //! ```
 
-pub mod macros;
+mod macros;
 pub use macros::*;
 
 mod injectable;
