@@ -5,7 +5,7 @@ A dependency injection library for Rust.
 ## Usage
 ```toml
 [dependencies]
-dilib = "0.1.0-alpha"
+dilib = "0.1.2-alpha"
 ```
 
 ## Example

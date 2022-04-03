@@ -16,16 +16,28 @@ checksum = "0e25ea47919b1560c4e3b7fe0aaab9becf5b84a10325ddf7db0f0ba5e1026499"
 
 [[package]]
 name = "dilib"
-version = "0.1.0-alpha"
+version = "0.1.2-alpha"
 dependencies = [
- "dilib-derive",
+ "dilib-derive 0.1.0-alpha (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "dilib-derive"
-version = "0.1.0"
+version = "0.1.0-alpha"
 dependencies = [
  "dilib",
+ "mattro",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "dilib-derive"
+version = "0.1.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdb78d040283226bd36b12d576c2778512306f763d3060989e8459f1ce9d6b8c"
+dependencies = [
  "mattro",
  "proc-macro2",
  "quote",
