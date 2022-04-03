@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: cd dilib && cargo build --all-features --verbose
-      - run: cargo test --all-features --verbose
+      - run: cd dilib cargo test --all-features --verbose
 
   test_suite:
     name: Test Suite
@@ -25,4 +25,4 @@ jobs:
       - uses: actions/checkout@v3
       - run: cargo install cargo-expand  --verbose
       - run: cd test_suite && cargo build --all-features --verbose
-      - run: cargo test --all-features --verbose
+      - run: cd test_suite && cargo test --all-features --verbose
