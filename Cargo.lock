@@ -25,6 +25,7 @@ dependencies = [
 name = "dilib-derive"
 version = "0.1.0"
 dependencies = [
+ "dilib",
  "mattro",
  "proc-macro2",
  "quote",
