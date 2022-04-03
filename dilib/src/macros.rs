@@ -8,8 +8,35 @@
 /// - `trait`: the type of the trait.
 /// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
 ///
-/// # Example
+/// # Examples
+/// ## Basic usage
+/// ```rust
+/// #[macro_use]
+/// extern crate dilib;
+/// use dilib::macros::*;
+/// use dilib::Container;
+///
+/// trait Greet {
+///    fn greet(&self) -> &str;
+/// }
+///
+/// struct EnglishGreeting;
+/// impl Greet for EnglishGreeting {
+///     fn greet(&self) -> &str {
+///         "Hello"
+///     }
+/// }
+/// fn main () {
+///     let mut container = Container::new();
+///     register_scoped_trait!(container, Greet, EnglishGreeting);
+///
+///     let greeting = get_scoped_trait!(container, Greet).unwrap();
+///     assert_eq!(greeting.greet(), "Hello");
+/// }
 /// ```
+///
+/// ## With named trait
+/// ```rust
 /// #[macro_use]
 /// extern crate dilib;
 /// use dilib::macros::*;
@@ -110,8 +137,37 @@ macro_rules! get_scoped_trait {
 /// - `trait`: the type of the trait.
 /// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
 ///
-/// # Example
+/// # Examples
+///
+/// ## Basic usage
+/// ```rust
+/// #[macro_use]
+/// extern crate dilib;
+/// use dilib::macros::*;
+/// use dilib::Container;
+///
+/// trait Greet {
+///    fn greet(&self) -> &str;
+/// }
+///
+/// struct HelloWorld;
+/// impl Greet for HelloWorld {
+///   fn greet(&self) -> &'static str {
+///         "hello world"
+///     }
+/// }
+///
+/// fn main() {
+///     let mut container = Container::new();
+///     register_singleton_trait!(container, Greet, HelloWorld);
+///
+///     let greet = get_singleton_trait!(container, Greet).unwrap();
+///     assert_eq!(greet.greet(), "hello world");
+/// }
 /// ```
+///
+/// ## With named trait
+/// ```rust
 /// #[macro_use]
 /// extern crate dilib;
 /// use dilib::macros::*;
