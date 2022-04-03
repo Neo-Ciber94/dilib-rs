@@ -49,7 +49,5 @@ use proc_macro::TokenStream;
 pub fn derive_injectable_attribute(item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item);
 
-    parse_derive_injectable(input)
-        .emit()
-        .into()
+    parse_derive_injectable(input).emit().into()
 }

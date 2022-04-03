@@ -19,12 +19,14 @@ async fn main() -> std::io::Result<()> {
         .and_then(|port| port.parse::<u16>().ok())
         .unwrap_or(8080);
 
-    HttpServer::new(|| App::new()
-        .app_data(web::Data::new(create_container()))
-        .service(hello))
-        .bind(("127.0.0.1", port))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .app_data(web::Data::new(create_container()))
+            .service(hello)
+    })
+    .bind(("127.0.0.1", port))?
+    .run()
+    .await
 }
 
 fn create_container() -> Container<'static> {

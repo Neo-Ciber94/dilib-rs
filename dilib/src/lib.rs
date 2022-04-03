@@ -41,8 +41,8 @@
 //! Requires `derive` feature.
 //!
 //! ```rust
-//! use std::sync::Mutex;
 //! use dilib::*;
+//! use std::sync::Mutex;
 //!
 //! #[derive(Injectable)]
 //! struct Counter {

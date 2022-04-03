@@ -1,8 +1,8 @@
+use proc_macro2::Ident;
+use syn::parenthesized;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::parenthesized;
-use syn::token::{Paren, Comma};
-use proc_macro2::Ident;
+use syn::token::{Comma, Paren};
 
 #[derive(Debug)]
 pub struct TargetConstructor {
@@ -22,16 +22,13 @@ pub struct TargetConstructorTokens {
     method: Ident,
     #[allow(dead_code)]
     paren_token: Paren,
-    args: Punctuated<Ident, Comma>
+    args: Punctuated<Ident, Comma>,
 }
 
 impl TargetConstructorTokens {
     pub fn into_constructor(self) -> TargetConstructor {
         let name = self.method.to_string();
-        let args = self.args
-            .iter()
-            .map(|s| s.to_string())
-            .collect::<Vec<_>>();
+        let args = self.args.iter().map(|s| s.to_string()).collect::<Vec<_>>();
 
         TargetConstructor::new(name, args)
     }
@@ -44,7 +41,7 @@ impl Parse for TargetConstructorTokens {
         Ok(TargetConstructorTokens {
             method: input.parse()?,
             paren_token: parenthesized!(content in input),
-            args: content.parse_terminated(Ident::parse)?
+            args: content.parse_terminated(Ident::parse)?,
         })
     }
 }
