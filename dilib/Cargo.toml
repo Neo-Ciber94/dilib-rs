@@ -1,5 +1,8 @@
 [package]
 name = "dilib"
+keywords = ["rust-patterns"]
+description = "A dependency injection library for Rust"
+repository = "https://github.com/Neo-Ciber94/dilib-rs"
 version = "0.1.0-alpha"
 authors = ["Freddy L."]
 edition = "2021"

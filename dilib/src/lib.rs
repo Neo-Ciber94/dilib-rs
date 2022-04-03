@@ -1,4 +1,4 @@
-//! # Dilib
+//! # dilib-rs
 //!
 //! A dependency injection library for Rust.
 //!
