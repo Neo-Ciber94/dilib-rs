@@ -92,6 +92,8 @@ impl DeriveInjectable {
 
         quote! {
             impl #generic_params dilib::Injectable for #target_type #generic_types #where_clause {
+                #[allow(unused)]
+                #[allow(dead_code)]
                 fn resolve(#container : &dilib::Container) -> Self {
                     #(#deps)*
                     #body
@@ -287,29 +289,13 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
             let segment = type_path.path.segments.last().unwrap();
             let ident = segment.ident.to_string();
 
-            // Is `Singleton<T>`
-            if ident == "Singleton" && !segment.arguments.is_empty() {
+            // Is `Singleton<T>` or `Arc<T>`
+            if (ident == "Singleton" || ident == "Arc") && !segment.arguments.is_empty() {
                 match &segment.arguments {
                     PathArguments::AngleBracketed(bracketed) => {
                         let generic_arg = bracketed.args.first().unwrap();
                         if let GenericArgument::Type(Type::Path(generic_type)) = generic_arg {
                             return Some(Type::Path(generic_type.clone()));
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            // Is `Arc<Mutex<T>>`
-            if ident == "Arc" {
-                match &segment.arguments {
-                    PathArguments::AngleBracketed(bracket) => {
-                        let generic_arg = bracket.args.first().unwrap();
-                        if let GenericArgument::Type(Type::Path(generic)) = generic_arg {
-                            let inner = generic.path.segments.last().unwrap();
-                            if inner.ident.to_string() == "Mutex" {
-                                return Some(Type::Path(generic.clone()));
-                            }
                         }
                     }
                     _ => {}

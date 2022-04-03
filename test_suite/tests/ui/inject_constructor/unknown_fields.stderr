@@ -1,15 +1,19 @@
-error[E0425]: cannot find value `x` in this scope
- --> $DIR/unknown_fields.rs:3:10
+error[E0432]: unresolved import `dilib`
+ --> $DIR/unknown_fields.rs:1:5
   |
-3 | #[derive(Injectable)]
-  |          ^^^^^^^^^^ help: a local variable with a similar name exists: `a`
-  |
-  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+1 | use dilib::Injectable;
+  |     ^^^^^ use of undeclared crate or module `dilib`
 
-error[E0425]: cannot find value `y` in this scope
+error: cannot determine resolution for the derive macro `Injectable`
  --> $DIR/unknown_fields.rs:3:10
   |
 3 | #[derive(Injectable)]
-  |          ^^^^^^^^^^ help: a local variable with a similar name exists: `a`
+  |          ^^^^^^^^^^
   |
-  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: import resolution is stuck, try simplifying macro imports
+
+error: cannot find attribute `inject` in this scope
+ --> $DIR/unknown_fields.rs:4:3
+  |
+4 | #[inject(constructor="new(x, y)")]
+  |   ^^^^^^

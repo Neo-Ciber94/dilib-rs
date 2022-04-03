@@ -2,7 +2,7 @@
 name = "dilib"
 version = "0.1.0"
 authors = ["Freddy L."]
-edition = "2018"
+edition = "2021"
 
 [features]
 derive = ["dilib-derive"]

@@ -20,6 +20,7 @@ impl TargetConstructor {
 #[derive(Debug)]
 pub struct TargetConstructorTokens {
     method: Ident,
+    #[allow(dead_code)]
     paren_token: Paren,
     args: Punctuated<Ident, Comma>
 }

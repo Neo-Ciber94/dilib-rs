@@ -4,11 +4,12 @@ use crate::Container;
 ///
 /// # Example
 /// ```
+/// use std::sync::Mutex;
 /// use dilib::{Singleton, Injectable, Container};
 ///
 /// struct Greeter {
 ///    message: String,
-///    total_greets: Singleton<usize>
+///    total_greets: Singleton<Mutex<usize>>
 /// }
 ///
 /// impl Greeter {
@@ -21,7 +22,7 @@ use crate::Container;
 /// impl Injectable for Greeter {
 ///     fn resolve(container: &Container) -> Self{
 ///         let message = container.get_scoped_with_name::<String>("es_msg").unwrap();
-///         let total_greets = container.get_singleton_with_name::<usize>("count").unwrap();
+///         let total_greets = container.get_singleton_with_name::<Mutex<usize>>("count").unwrap();
 ///         Greeter { message, total_greets }
 ///     }
 /// }

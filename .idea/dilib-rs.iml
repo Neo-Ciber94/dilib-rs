@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/dilib/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_suite/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_suite/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/samples/hello_world/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/dilib/target" />
       <excludeFolder url="file://$MODULE_DIR$/dev/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />

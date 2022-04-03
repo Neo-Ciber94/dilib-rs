@@ -1,14 +1,13 @@
 use std::any::TypeId;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
+use std::sync::Arc;
 use crate::provider::{Provider, ProviderKind};
 use crate::scoped::Scoped;
 use crate::{Injectable, InjectionKey};
 use std::collections::hash_map::{Iter, Values};
 
 /// A convenient singleton type.
-pub type Singleton<T> = Arc<Mutex<T>>;
+pub type Singleton<T> = Arc<T>;
 
 // Insertion operation when adding new providers
 #[derive(Debug, Eq, PartialEq)]
@@ -286,7 +285,7 @@ impl<'a> Container<'a> {
             }
         }
 
-        let singleton = Arc::new(Mutex::new(value));
+        let singleton = Arc::new(value);
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Singleton(singleton), name)
     }
@@ -345,6 +344,7 @@ fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
     use super::*;
 
     #[test]
@@ -383,7 +383,7 @@ mod tests {
 
         let value = container.get_singleton::<i32>().unwrap();
 
-        assert_eq!(*value.lock().unwrap(), 42069_i32);
+        assert_eq!(*value, 42069_i32);
         assert!(container.get_singleton::<i64>().is_none());
     }
 
@@ -398,7 +398,7 @@ mod tests {
             .get_singleton_with_name::<i32>("funny number")
             .unwrap();
 
-        assert_eq!(*value.lock().unwrap(), 42069_i32);
+        assert_eq!(*value, 42069_i32);
         assert!(container.get_singleton_with_name::<i32>("number").is_none());
     }
 
@@ -428,7 +428,7 @@ mod tests {
     fn deps_test() {
         struct Greeter {
             message: String,
-            total_greets: Singleton<usize>,
+            total_greets: Singleton<Mutex<usize>>,
         }
 
         impl Greeter {
@@ -442,7 +442,7 @@ mod tests {
             fn resolve(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
                 let total_greets = container
-                    .get_singleton_with_name::<usize>("counter")
+                    .get_singleton_with_name::<Mutex<usize>>("counter")
                     .unwrap();
                 Greeter {
                     message,
@@ -452,7 +452,7 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", 0_usize);
+        container.add_singleton_with_name("counter", Mutex::new(0_usize));
         container.add_deps::<Greeter>();
         container.add_scoped_with_name("en_msg", || String::from("hello"));
 
@@ -470,7 +470,7 @@ mod tests {
     fn deps_with_name_test() {
         struct Greeter {
             message: String,
-            total_greets: Singleton<usize>,
+            total_greets: Singleton<Mutex<usize>>,
         }
 
         impl Greeter {
@@ -484,7 +484,7 @@ mod tests {
             fn resolve(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
                 let total_greets = container
-                    .get_singleton_with_name::<usize>("counter")
+                    .get_singleton_with_name::<Mutex<usize>>("counter")
                     .unwrap();
                 Greeter {
                     message,
@@ -494,7 +494,7 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", 0_usize);
+        container.add_singleton_with_name("counter", Mutex::new(0_usize));
         container.add_deps_with_name::<Greeter>("en_greeter");
         container.add_scoped_with_name("en_msg", || String::from("hello"));
 
@@ -547,7 +547,7 @@ mod tests {
         container.try_add_singleton("hola mundo");
 
         let value = container.get_singleton::<&str>().unwrap();
-        assert_eq!(*value.lock().unwrap(), "hello world");
+        assert_eq!(*value, "hello world");
     }
 
     #[test]
@@ -564,8 +564,8 @@ mod tests {
             .get_singleton_with_name::<&str>("goodbye")
             .unwrap();
 
-        assert_eq!(*v1.lock().unwrap(), "hello world");
-        assert_eq!(*v2.lock().unwrap(), "bye world");
+        assert_eq!(*v1, "hello world");
+        assert_eq!(*v2, "bye world");
     }
 
     #[test]
@@ -714,7 +714,7 @@ mod tests {
         assert_eq!(Some(true), v1);
         assert_eq!(
             0.25_f32,
-            *v2.unwrap().lock().expect("unable to get singleton")
+            *v2.unwrap()
         );
         assert_eq!(Some(200_usize), v3);
     }
@@ -750,7 +750,7 @@ mod tests {
         assert_eq!(TypeId::of::<i32>(), k2.type_id());
         assert_eq!(
             2500_i32,
-            *p2.get_singleton::<i32>().unwrap().lock().unwrap()
+            *p2.get_singleton::<i32>().unwrap()
         );
     }
 }

@@ -140,8 +140,8 @@ macro_rules! get_scoped_trait {
 ///     let sum = get_singleton_trait!(container, BinaryOp, "sum").unwrap();
 ///     let prod = get_singleton_trait!(container, BinaryOp, "prod").unwrap();
 ///
-///     assert_eq!(5, sum.lock().unwrap().calc(2, 3));
-///     assert_eq!(6, prod.lock().unwrap().calc(3, 2));
+///     assert_eq!(5, sum.calc(2, 3));
+///     assert_eq!(6, prod.calc(3, 2));
 /// }
 /// ```
 #[macro_export]

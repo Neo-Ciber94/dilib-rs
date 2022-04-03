@@ -5,5 +5,5 @@ members = [
 
     # Internal
     "test_suite",
-    "dev"
+    "samples/*"
 ]

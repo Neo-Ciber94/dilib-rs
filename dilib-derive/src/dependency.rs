@@ -54,9 +54,8 @@ impl Dependency {
             // let name : type = "string literal".into()
             Some(DefaultValue::Literal(Lit::Str(_))) => quote! { .into() },
 
-            // let name : type = default
-            // todo: Add literal suffix if needed, ex: _usize, _i32
-            Some(DefaultValue::Literal(_)) => quote! {},
+            // let name : type = default.into()
+            Some(DefaultValue::Literal(_)) => quote! { .into() },
 
             // let name : type = Default::default()
             Some(DefaultValue::Infer) => quote! {},

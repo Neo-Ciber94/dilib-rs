@@ -1,15 +1,19 @@
-error[E0061]: this function takes 3 arguments but 2 arguments were supplied
-  --> $DIR/missing_param.rs:3:10
-   |
-3  | #[derive(Injectable)]
-   |          ^^^^^^^^^^
-   |          |
-   |          supplied 2 arguments
-   |          expected 3 arguments
-   |
-note: associated function defined here
-  --> $DIR/missing_param.rs:11:12
-   |
-11 |     pub fn new(a: String, b: Singleton<usize>, trim_string: bool) -> Self {
-   |            ^^^ ---------  -------------------  -----------------
-   = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0432]: unresolved import `dilib`
+ --> $DIR/missing_param.rs:1:5
+  |
+1 | use dilib::{Singleton, Injectable};
+  |     ^^^^^ use of undeclared crate or module `dilib`
+
+error: cannot determine resolution for the derive macro `Injectable`
+ --> $DIR/missing_param.rs:3:10
+  |
+3 | #[derive(Injectable)]
+  |          ^^^^^^^^^^
+  |
+  = note: import resolution is stuck, try simplifying macro imports
+
+error: cannot find attribute `inject` in this scope
+ --> $DIR/missing_param.rs:4:3
+  |
+4 | #[inject(constructor="new(a, b)")]
+  |   ^^^^^^
