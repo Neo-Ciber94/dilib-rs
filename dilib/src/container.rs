@@ -105,72 +105,6 @@ impl<'a> Container<'a> {
         )
     }
 
-    /// Attempts to add a scoped factory if there is no provider registered for the given type.
-    #[inline]
-    pub fn try_add_scoped<T, F>(&mut self, f: F)
-    where
-        T: 'static,
-        F: Fn() -> T + 'static,
-    {
-        self.add_scoped_internal::<T>(Operation::NoneIfExist, Scoped::from_factory(f), None);
-    }
-
-    /// Attempts to add a scoped factory if there is no provider registered for the given type and name.
-    #[inline]
-    pub fn try_add_scoped_with_name<T, F>(&mut self, name: &str, f: F)
-    where
-        T: 'static,
-        F: Fn() -> T + 'static,
-    {
-        self.add_scoped_internal::<T>(Operation::NoneIfExist, Scoped::from_factory(f), Some(name));
-    }
-
-    /// Attempts to add a singleton if there is no provider registered for the given type.
-    #[inline]
-    pub fn try_add_singleton<T>(&mut self, value: T)
-    where
-        T: 'static,
-    {
-        self.add_singleton_internal::<T>(Operation::NoneIfExist, None, value);
-    }
-
-    /// Attempts to add a singleton if there is nothing registered for the given type and name.
-    #[inline]
-    pub fn try_add_singleton_with_name<T>(&mut self, name: &str, value: T)
-    where
-        T: 'static,
-    {
-        self.add_singleton_internal::<T>(Operation::NoneIfExist, Some(name), value);
-    }
-
-    /// Attempts to add a scoped `Injectable` that depends on others providers
-    /// if there is no provider register for the given type.
-    #[inline]
-    pub fn try_add_deps<T>(&mut self)
-    where
-        T: Injectable + 'static,
-    {
-        self.add_scoped_internal::<T>(
-            Operation::NoneIfExist,
-            Scoped::from_injectable(T::resolve),
-            None,
-        );
-    }
-
-    /// Attempts to add a scoped `Injectable` that depends on others providers
-    /// if there is no provider register for the given type and name.
-    #[inline]
-    pub fn try_add_deps_with_name<T>(&mut self, name: &str)
-    where
-        T: Injectable + 'static,
-    {
-        self.add_scoped_internal::<T>(
-            Operation::NoneIfExist,
-            Scoped::from_injectable(T::resolve),
-            Some(name),
-        );
-    }
-
     /// Returns a value registered for the given type or `None`
     /// if no provider is register for the given type.
     ///
@@ -187,33 +121,6 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_with_name<T: 'static>(&self, name: &str) -> Option<Resolved<T>> {
         self.get_internal::<T>(Some(name))
-    }
-
-    fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
-    where
-        T: 'static,
-    {
-        let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, name);
-
-        if let Some(provider) = self.providers.get(&key) {
-            if provider.is_scoped() {
-                match provider {
-                    Provider::Scoped(f) => {
-                        if f.is_factory() {
-                            f.call_factory().map(Resolved::Scoped)
-                        } else {
-                            f.call_injectable(self).map(Resolved::Scoped)
-                        }
-                    }
-                    Provider::Singleton(_) => unreachable!(),
-                }
-            } else {
-                provider.get_singleton().map(Resolved::Singleton)
-            }
-        } else {
-            None
-        }
     }
 
     /// Returns a value registered for the given type, or `None`
@@ -333,6 +240,33 @@ impl<'a> Container<'a> {
         let singleton = Arc::new(value);
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Singleton(singleton), name)
+    }
+
+    fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
+    where
+        T: 'static,
+    {
+        let type_id = TypeId::of::<T>();
+        let key = InjectionKey::new(type_id, name);
+
+        if let Some(provider) = self.providers.get(&key) {
+            if provider.is_scoped() {
+                match provider {
+                    Provider::Scoped(f) => {
+                        if f.is_factory() {
+                            f.call_factory().map(Resolved::Scoped)
+                        } else {
+                            f.call_injectable(self).map(Resolved::Scoped)
+                        }
+                    }
+                    Provider::Singleton(_) => unreachable!(),
+                }
+            } else {
+                provider.get_singleton().map(Resolved::Singleton)
+            }
+        } else {
+            None
+        }
     }
 
     fn get_scoped_internal<T>(&self, name: Option<&str>) -> Option<T>
@@ -548,115 +482,6 @@ mod tests {
         greeter.greet();
 
         assert_eq!(*greeter.total_greets.lock().unwrap(), 3);
-    }
-
-    #[test]
-    fn try_add_scoped_test() {
-        let mut container = Container::new();
-        container.try_add_scoped(|| 100_i32);
-        container.try_add_scoped(|| 300_i32);
-
-        let value = container.get_scoped::<i32>().unwrap();
-        assert_eq!(value, 100_i32);
-    }
-
-    #[test]
-    fn try_add_scoped_with_name_test() {
-        let mut container = Container::new();
-        container.try_add_scoped_with_name("number", || 100_i32);
-        container.try_add_scoped_with_name("number", || 300_i32);
-        container.try_add_scoped_with_name("other_number", || 400_i32);
-
-        let v1 = container.get_scoped_with_name::<i32>("number").unwrap();
-        let v2 = container
-            .get_scoped_with_name::<i32>("other_number")
-            .unwrap();
-
-        assert_eq!(v1, 100_i32);
-        assert_eq!(v2, 400_i32);
-    }
-
-    #[test]
-    fn try_add_singleton_test() {
-        let mut container = Container::new();
-        container.try_add_singleton("hello world");
-        container.try_add_singleton("hola mundo");
-
-        let value = container.get_singleton::<&str>().unwrap();
-        assert_eq!(*value, "hello world");
-    }
-
-    #[test]
-    fn try_add_singleton_with_name_test() {
-        let mut container = Container::new();
-        container.try_add_singleton_with_name("greeting", "hello world");
-        container.try_add_singleton_with_name("greeting", "hola mundo");
-        container.try_add_singleton_with_name("goodbye", "bye world");
-
-        let v1 = container
-            .get_singleton_with_name::<&str>("greeting")
-            .unwrap();
-        let v2 = container
-            .get_singleton_with_name::<&str>("goodbye")
-            .unwrap();
-
-        assert_eq!(*v1, "hello world");
-        assert_eq!(*v2, "bye world");
-    }
-
-    #[test]
-    fn try_add_deps_test() {
-        struct IntWrapper(i32);
-
-        impl Injectable for IntWrapper {
-            fn resolve(container: &Container) -> Self {
-                let value = container.get_scoped::<i32>().unwrap();
-                IntWrapper(value)
-            }
-        }
-
-        let mut container = Container::new();
-        container.try_add_deps::<IntWrapper>();
-
-        let provider = container.add_deps::<IntWrapper>();
-        assert!(provider.is_some());
-
-        container.add_scoped(|| 22_i32);
-
-        let wrapper = container.get_scoped::<IntWrapper>().unwrap();
-        assert_eq!(22_i32, wrapper.0);
-    }
-
-    #[test]
-    fn try_add_deps_with_name_test() {
-        struct IntWrapper(i32);
-
-        impl Injectable for IntWrapper {
-            fn resolve(container: &Container) -> Self {
-                let value = container.get_scoped::<i32>().unwrap();
-                IntWrapper(value)
-            }
-        }
-
-        let mut container = Container::new();
-        container.try_add_deps_with_name::<IntWrapper>("wrapper");
-
-        let p1 = container.add_deps_with_name::<IntWrapper>("wrapper");
-        let p2 = container.add_deps_with_name::<IntWrapper>("nothing");
-
-        assert!(p1.is_some());
-        assert!(p2.is_none());
-
-        container.add_scoped(|| 22_i32);
-
-        let w1 = container
-            .get_scoped_with_name::<IntWrapper>("wrapper")
-            .unwrap();
-        let w2 = container
-            .get_scoped_with_name::<IntWrapper>("nothing")
-            .unwrap();
-        assert_eq!(22_i32, w1.0);
-        assert_eq!(22_i32, w2.0);
     }
 
     #[test]
