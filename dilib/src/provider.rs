@@ -13,7 +13,7 @@ pub enum ProviderKind {
     Singleton,
 }
 
-/// Providers a mechanism for create a value.
+/// Provides a [`Container`] value.
 #[derive(Clone)]
 pub enum Provider {
     /// A provider that returns a new value each time is requested.

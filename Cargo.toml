@@ -2,8 +2,6 @@
 members = [
     "dilib",
     "dilib-derive",
-
-    # Internal
     "test_suite",
     "samples/*"
 ]
