@@ -5,11 +5,6 @@ authors = ["Freddy L."]
 edition = "2021"
 publish = false
 
-[lib]
-name = "expand"
-path = "tests"
-test = true
-
 [dependencies]
 macrotest = "1.0.8"
 trybuild = "1.0.43"
