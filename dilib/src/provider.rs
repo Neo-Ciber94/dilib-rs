@@ -1,8 +1,8 @@
 use crate::scoped::Scoped;
 use crate::{Container, Injectable, Singleton};
 use std::any::Any;
-use std::sync::Arc;
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 /// Represents the type of the provider.
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -19,7 +19,7 @@ pub enum Provider {
     /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
     /// A provider that returns the same value each time is required.
-    Singleton(Arc<dyn Any + Send + Sync>),
+    Singleton(Arc<dyn Any>),
 }
 
 impl Provider {
@@ -70,10 +70,10 @@ impl Provider {
     #[inline]
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         match self {
-            Provider::Singleton(value) => value.clone().downcast().ok(),
+            Provider::Singleton(value) => downcast_clone_arc(value).ok(),
             _ => None,
         }
     }
@@ -83,7 +83,26 @@ impl Debug for Provider {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Provider::Scoped(scoped) => write!(f, "Provider::Scoped({:?})", scoped),
-            Provider::Singleton(_) => write!(f, "Provider::Singleton(..))")
+            Provider::Singleton(_) => write!(f, "Provider::Singleton(..))"),
         }
+    }
+}
+
+fn downcast_clone_arc<T>(value: &Arc<dyn Any>) -> Result<Arc<T>, Arc<dyn Any>>
+where
+    T: Any + 'static,
+{
+    downcast_arc(value.clone())
+}
+
+fn downcast_arc<T>(arc: Arc<dyn Any>) -> Result<Arc<T>, Arc<dyn Any>>
+where
+    T: Any + 'static,
+{
+    if (*arc).is::<T>() {
+        let raw = Arc::into_raw(arc).cast::<T>();
+        unsafe { Ok(Arc::from_raw(raw)) }
+    } else {
+        Err(arc)
     }
 }

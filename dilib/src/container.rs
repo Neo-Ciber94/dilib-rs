@@ -1,10 +1,10 @@
+use crate::provider::Provider;
+use crate::scoped::Scoped;
+use crate::{Injectable, InjectionKey, Resolved};
 use std::any::TypeId;
+use std::collections::hash_map::{Iter, Values};
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::provider::{Provider, ProviderKind};
-use crate::scoped::Scoped;
-use crate::{Injectable, InjectionKey};
-use std::collections::hash_map::{Iter, Values};
 
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<T>;
@@ -62,7 +62,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.add_singleton_internal(Operation::ReplaceIfExist, None, value)
     }
@@ -72,7 +72,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_singleton_with_name<T>(&mut self, name: &str, value: T) -> Option<Provider>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.add_singleton_internal(Operation::ReplaceIfExist, Some(name), value)
     }
@@ -129,7 +129,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn try_add_singleton<T>(&mut self, value: T)
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.add_singleton_internal::<T>(Operation::NoneIfExist, None, value);
     }
@@ -138,7 +138,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn try_add_singleton_with_name<T>(&mut self, name: &str, value: T)
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.add_singleton_internal::<T>(Operation::NoneIfExist, Some(name), value);
     }
@@ -171,6 +171,51 @@ impl<'a> Container<'a> {
         );
     }
 
+    /// Returns a value registered for the given type or `None`
+    /// if no provider is register for the given type.
+    ///
+    /// The returning value could be either scoped or a singleton.
+    #[inline]
+    pub fn get<T: 'static>(&self) -> Option<Resolved<T>> {
+        self.get_internal::<T>(None)
+    }
+
+    /// Returns a value registered for the given type and name or `None`
+    /// if no provider is register for the given type.
+    ///
+    /// The returning value could be either scoped or a singleton.
+    #[inline]
+    pub fn get_with_name<T: 'static>(&self, name: &str) -> Option<Resolved<T>> {
+        self.get_internal::<T>(Some(name))
+    }
+
+    fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
+    where
+        T: 'static,
+    {
+        let type_id = TypeId::of::<T>();
+        let key = InjectionKey::new(type_id, name);
+
+        if let Some(provider) = self.providers.get(&key) {
+            if provider.is_scoped() {
+                match provider {
+                    Provider::Scoped(f) => {
+                        if f.is_factory() {
+                            f.call_factory().map(Resolved::Scoped)
+                        } else {
+                            f.call_injectable(self).map(Resolved::Scoped)
+                        }
+                    }
+                    Provider::Singleton(_) => unreachable!(),
+                }
+            } else {
+                provider.get_singleton().map(Resolved::Singleton)
+            }
+        } else {
+            None
+        }
+    }
+
     /// Returns a value registered for the given type, or `None`
     /// if no provider is register for the given type.
     #[inline]
@@ -196,7 +241,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.get_singleton_internal::<T>(None)
     }
@@ -206,7 +251,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_singleton_with_name<T>(&self, name: &str) -> Option<Singleton<T>>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         self.get_singleton_internal::<T>(Some(name))
     }
@@ -259,7 +304,7 @@ impl<'a> Container<'a> {
         T: 'static,
     {
         if op == Operation::NoneIfExist {
-            let key = key_for::<T>(name, ProviderKind::Scoped);
+            let key = key_for::<T>(name);
             if self.contains(key) {
                 return None;
             }
@@ -276,10 +321,10 @@ impl<'a> Container<'a> {
         value: T,
     ) -> Option<Provider>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         if op == Operation::NoneIfExist {
-            let key = key_for::<T>(name, ProviderKind::Singleton);
+            let key = key_for::<T>(name);
             if self.contains(key) {
                 return None;
             }
@@ -295,7 +340,7 @@ impl<'a> Container<'a> {
         T: 'static,
     {
         let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, ProviderKind::Scoped, name);
+        let key = InjectionKey::new(type_id, name);
         match self.get_provider(key)? {
             Provider::Scoped(f) => {
                 if f.is_factory() {
@@ -310,12 +355,11 @@ impl<'a> Container<'a> {
 
     fn get_singleton_internal<T>(&self, name: Option<&str>) -> Option<Singleton<T>>
     where
-        T: Send + Sync + 'static,
+        T: 'static,
     {
         let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, ProviderKind::Singleton, name);
-        self.get_provider(key)
-            .and_then(|p| p.get_singleton::<T>())
+        let key = InjectionKey::new(type_id, name);
+        self.get_provider(key).and_then(|p| p.get_singleton::<T>())
     }
 
     pub(crate) fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
@@ -327,24 +371,23 @@ impl<'a> Container<'a> {
         provider: Provider,
         name: Option<String>,
     ) -> Option<Provider> {
-        let kind = provider.kind();
         let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, kind, name);
+        let key = InjectionKey::new(type_id, name);
         self.providers.insert(key, provider)
     }
 }
 
 // Helper
 #[inline(always)]
-fn key_for<T: 'static>(name: Option<&str>, kind: ProviderKind) -> InjectionKey {
+fn key_for<T: 'static>(name: Option<&str>) -> InjectionKey {
     let type_id = TypeId::of::<T>();
-    InjectionKey::new(type_id, kind, name)
+    InjectionKey::new(type_id, name)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
     use super::*;
+    use std::sync::Mutex;
 
     #[test]
     fn scoped_test() {
@@ -411,16 +454,10 @@ mod tests {
 
         assert_eq!(container.len(), 4);
 
-        assert!(container.contains(InjectionKey::of::<i32>(ProviderKind::Scoped)));
-        assert!(container.contains(InjectionKey::with_name::<i32>(
-            ProviderKind::Scoped,
-            "number"
-        )));
-        assert!(container.contains(InjectionKey::of::<String>(ProviderKind::Singleton)));
-        assert!(container.contains(InjectionKey::with_name::<&str>(
-            ProviderKind::Singleton,
-            "bye"
-        )));
+        assert!(container.contains(InjectionKey::of::<i32>()));
+        assert!(container.contains(InjectionKey::with_name::<i32>("number")));
+        assert!(container.contains(InjectionKey::of::<String>()));
+        assert!(container.contains(InjectionKey::with_name::<&str>("bye")));
     }
 
     #[test]
@@ -634,39 +671,23 @@ mod tests {
 
         assert_eq!(container.len(), 4);
 
-        assert!(container
-            .remove(InjectionKey::of::<bool>(ProviderKind::Scoped))
-            .is_some());
+        assert!(container.remove(InjectionKey::of::<bool>()).is_some());
 
         // Provider already removed
-        assert!(container
-            .remove(InjectionKey::of::<bool>(ProviderKind::Scoped))
-            .is_none());
+        assert!(container.remove(InjectionKey::of::<bool>()).is_none());
 
         assert_eq!(container.len(), 3);
 
         // Provider is of incorrect kind
-        assert!(container
-            .remove(InjectionKey::of::<String>(ProviderKind::Scoped))
-            .is_none());
-
-        assert!(container
-            .remove(InjectionKey::of::<String>(ProviderKind::Singleton))
-            .is_some());
+        assert!(container.remove(InjectionKey::of::<String>()).is_some());
 
         assert_eq!(container.len(), 2);
 
         assert!(container
-            .remove(InjectionKey::with_name::<i32>(
-                ProviderKind::Scoped,
-                "number"
-            ))
+            .remove(InjectionKey::with_name::<i32>("number"))
             .is_some());
         assert!(container
-            .remove(InjectionKey::with_name::<String>(
-                ProviderKind::Singleton,
-                "color"
-            ))
+            .remove(InjectionKey::with_name::<String>("color"))
             .is_some());
         assert_eq!(container.len(), 0);
     }
@@ -711,10 +732,7 @@ mod tests {
             .last();
 
         assert_eq!(Some(true), v1);
-        assert_eq!(
-            0.25_f32,
-            *v2.unwrap()
-        );
+        assert_eq!(0.25_f32, *v2.unwrap());
         assert_eq!(Some(200_usize), v3);
     }
 
@@ -740,16 +758,11 @@ mod tests {
             .unwrap();
 
         assert_eq!(Some("truthfulness"), k1.name());
-        assert_eq!(ProviderKind::Scoped, k1.kind());
         assert_eq!(TypeId::of::<bool>(), k1.type_id());
         assert_eq!(Some(true), p1.get_scoped::<bool>());
 
         assert_eq!(None, k2.name());
-        assert_eq!(ProviderKind::Singleton, k2.kind());
         assert_eq!(TypeId::of::<i32>(), k2.type_id());
-        assert_eq!(
-            2500_i32,
-            *p2.get_singleton::<i32>().unwrap()
-        );
+        assert_eq!(2500_i32, *p2.get_singleton::<i32>().unwrap());
     }
 }

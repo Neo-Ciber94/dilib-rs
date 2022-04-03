@@ -81,6 +81,9 @@ pub use provider::*;
 mod scoped;
 pub use scoped::*;
 
+mod resolved;
+pub use resolved::*;
+
 #[cfg(feature = "derive")]
 extern crate dilib_derive;
 

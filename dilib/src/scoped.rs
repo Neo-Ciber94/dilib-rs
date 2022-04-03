@@ -1,7 +1,7 @@
 use crate::Container;
-use std::any::{TypeId, Any};
-use std::sync::Arc;
+use std::any::{Any, TypeId};
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 /// Represents an `Scoped` provider which provide a new instance each time.
 #[derive(Debug, Clone)]
@@ -83,7 +83,6 @@ enum BoxClosure {
     FnArg(Arc<dyn Fn(&Container) -> Box<dyn Any>>),
 }
 
-
 // SAFETY: `BoxClosure` can be send to other threads
 // because it don't hold an inner mutable state, a call just returns a value.
 unsafe impl Send for BoxClosure {}
@@ -96,27 +95,28 @@ impl Debug for BoxClosure {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             BoxClosure::Fn(_) => write!(f, "BoxClosure::Fn(..)"),
-            BoxClosure::FnArg(_) => write!(f, "BoxClosure::FnArg(..)")
+            BoxClosure::FnArg(_) => write!(f, "BoxClosure::FnArg(..)"),
         }
     }
 }
 
 impl BoxClosure {
     pub fn from_fn<T, F>(f: F) -> Self
-        where
-            T: 'static ,
-            F: Fn() -> T + 'static,
+    where
+        T: 'static,
+        F: Fn() -> T + 'static,
     {
-        let func : Arc<dyn Fn() -> Box<dyn Any>> = Arc::new(move || Box::new(f()));
+        let func: Arc<dyn Fn() -> Box<dyn Any>> = Arc::new(move || Box::new(f()));
         BoxClosure::Fn(func)
     }
 
     pub fn from_fn_arg<T, F>(f: F) -> Self
-        where
-            T: 'static,
-            F: Fn(&Container) -> T + 'static,
+    where
+        T: 'static,
+        F: Fn(&Container) -> T + 'static,
     {
-        let func : Arc<dyn Fn(&Container) -> Box<dyn Any>> = Arc::new(move |c: &Container| Box::new(f(c)));
+        let func: Arc<dyn Fn(&Container) -> Box<dyn Any>> =
+            Arc::new(move |c: &Container| Box::new(f(c)));
         BoxClosure::FnArg(func)
     }
 
@@ -124,8 +124,9 @@ impl BoxClosure {
         match self {
             BoxClosure::FnArg(_) => Err(InvalidFunctionType),
             BoxClosure::Fn(func) => {
-                let value : Box<dyn Any> = func.as_ref()();
-                value.downcast()
+                let value: Box<dyn Any> = func.as_ref()();
+                value
+                    .downcast()
                     .map(|x| *x)
                     .map_err(|_| InvalidFunctionType)
             }
@@ -136,8 +137,9 @@ impl BoxClosure {
         match self {
             BoxClosure::Fn(_) => Err(InvalidFunctionType),
             BoxClosure::FnArg(func) => {
-                let value : Box<dyn Any> = func.as_ref()(container);
-                value.downcast()
+                let value: Box<dyn Any> = func.as_ref()(container);
+                value
+                    .downcast()
                     .map(|x| *x)
                     .map_err(|_| InvalidFunctionType)
             }

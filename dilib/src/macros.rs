@@ -200,13 +200,13 @@ macro_rules! get_scoped_trait {
 macro_rules! register_singleton_trait {
     ($container:ident, $trait_type:ident, $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type + Send + Sync;
-        let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
+        let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton::<std::boxed::Box<SafeTrait>>(x)
     }};
 
     ($container:ident, $name:literal, $trait_type:ident, $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type + Send + Sync;
-        let x : std::boxed::Box<SafeTrait> = Box::new($impl_expr);
+        let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x)
     }};
 
@@ -215,7 +215,7 @@ macro_rules! register_singleton_trait {
     }};
 
     ($container:ident, $name:literal, $trait_type:ident, { $impl_expr:expr }) => {{
-        $crate::register_singleton_trait!($container, $trait_type, $name:literal, $impl_expr);
+        $crate::register_singleton_trait!($container, $trait_type, $name: literal, $impl_expr);
     }};
 }
 
