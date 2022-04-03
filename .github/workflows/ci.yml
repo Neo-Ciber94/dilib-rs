@@ -18,8 +18,8 @@ jobs:
     - uses: actions/checkout@v3
 
     # Install packages
-    - name: Install
-      run: cargo install --verbose
+    - name: Install Cargo Expand
+      run: cargo install cargo-expand
 
     # Build
     - name: Build
