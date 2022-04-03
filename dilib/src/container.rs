@@ -130,7 +130,7 @@ impl<'a> Container<'a> {
     where
         T: 'static,
     {
-        self.get_scoped_internal::<T>(None)
+        self.get_internal::<T>(None).and_then(|r| r.into_scoped())
     }
 
     /// Returns a value registered for the given type and name, or `None`
@@ -140,7 +140,8 @@ impl<'a> Container<'a> {
     where
         T: 'static,
     {
-        self.get_scoped_internal::<T>(Some(name))
+        self.get_internal::<T>(Some(name))
+            .and_then(|r| r.into_scoped())
     }
 
     /// Returns a singleton registered for the given type, or `None`
@@ -150,7 +151,8 @@ impl<'a> Container<'a> {
     where
         T: 'static,
     {
-        self.get_singleton_internal::<T>(None)
+        self.get_internal::<T>(None)
+            .and_then(|r| r.into_singleton())
     }
 
     /// Returns a singleton registered for the given type and name, or `None`
@@ -160,7 +162,8 @@ impl<'a> Container<'a> {
     where
         T: 'static,
     {
-        self.get_singleton_internal::<T>(Some(name))
+        self.get_internal::<T>(Some(name))
+            .and_then(|r| r.into_singleton())
     }
 
     /// Returns `true` if the `Container` have a provider for the given `InjectionKey`.
@@ -267,37 +270,6 @@ impl<'a> Container<'a> {
         } else {
             None
         }
-    }
-
-    fn get_scoped_internal<T>(&self, name: Option<&str>) -> Option<T>
-    where
-        T: 'static,
-    {
-        let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, name);
-        match self.get_provider(key)? {
-            Provider::Scoped(f) => {
-                if f.is_factory() {
-                    f.call_factory::<T>()
-                } else {
-                    f.call_injectable::<T>(self)
-                }
-            }
-            Provider::Singleton(_) => unreachable!(),
-        }
-    }
-
-    fn get_singleton_internal<T>(&self, name: Option<&str>) -> Option<Singleton<T>>
-    where
-        T: 'static,
-    {
-        let type_id = TypeId::of::<T>();
-        let key = InjectionKey::new(type_id, name);
-        self.get_provider(key).and_then(|p| p.get_singleton::<T>())
-    }
-
-    pub(crate) fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {
-        self.providers.get(&key)
     }
 
     pub(crate) fn add_provider<T: 'static>(
