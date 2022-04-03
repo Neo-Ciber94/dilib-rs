@@ -1,14 +1,17 @@
 [package]
 name = "dilib"
-keywords = ["rust-patterns"]
 description = "A dependency injection library for Rust"
-repository = "https://github.com/Neo-Ciber94/dilib-rs"
+keywords = ["rust-patterns"]
 version = "0.1.0-alpha"
 authors = ["Freddy L."]
 edition = "2021"
+license-file = "../LICENSE"
+repository = "https://github.com/Neo-Ciber94/dilib-rs/"
+homepage = "https://crates.io/crates/dilib/"
+documentation = "https://docs.rs/dilib/"
 
 [features]
 derive = ["dilib-derive"]
 
 [dependencies]
-dilib-derive = { path = "../dilib-derive", optional = true }
+dilib-derive = { version="0.1.0-alpha", optional = true }
