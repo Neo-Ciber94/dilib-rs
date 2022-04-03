@@ -167,8 +167,7 @@ macro_rules! get_scoped_trait {
 /// ```rust
 /// #[macro_use]
 /// extern crate dilib;
-/// use dilib::macros::*;
-/// use dilib::Container;
+/// use dilib::*;
 ///
 /// trait BinaryOp {
 ///     fn calc(&self, lhs: i32, rhs: i32) -> i32;
