@@ -1,8 +1,13 @@
 [package]
 name = "dilib-derive"
+description = "Derive proc_macros for the dilib crate"
 version = "0.1.0-alpha"
 authors = ["Freddy L."]
 edition = "2021"
+license-file = "../LICENSE"
+repository = "https://github.com/Neo-Ciber94/dilib-rs/"
+homepage = "https://crates.io/crates/dilib/"
+documentation = "https://docs.rs/dilib/"
 
 [lib]
 proc_macro = true
