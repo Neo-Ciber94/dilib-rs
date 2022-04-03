@@ -38,6 +38,7 @@ impl TargetConstructorTokens {
 }
 
 impl Parse for TargetConstructorTokens {
+    #[allow(clippy::eval_order_dependence)]
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(TargetConstructorTokens {

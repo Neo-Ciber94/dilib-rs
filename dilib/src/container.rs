@@ -315,8 +315,7 @@ impl<'a> Container<'a> {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, ProviderKind::Singleton, name);
         self.get_provider(key)
-            .map(|p| p.get_singleton::<T>())
-            .flatten()
+            .and_then(|p| p.get_singleton::<T>())
     }
 
     pub(crate) fn get_provider(&self, key: InjectionKey<'a>) -> Option<&Provider> {

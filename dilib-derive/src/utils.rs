@@ -20,7 +20,8 @@ pub fn convert_to_inject_attribute_map(
         if items.insert(name.to_owned(), value.cloned()).is_some() {
             return Err(InjectError::DuplicatedKey(name.to_owned()));
         }
-        return Ok(());
+
+        Ok(())
     };
 
     for meta_item in attribute.iter() {

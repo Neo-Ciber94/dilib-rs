@@ -31,7 +31,7 @@ pub struct DeriveInjectable {
     constructor: Option<TargetConstructor>,
     deps: Vec<Dependency>,
     generics: Generics,
-    kind: StructKind
+    kind: StructKind,
 }
 
 impl DeriveInjectable {
@@ -63,30 +63,28 @@ impl DeriveInjectable {
 
         let body = if self.kind == StructKind::Unit {
             quote! { #target_type }
+        } else if let Some(constructor) = &self.constructor {
+            let params = constructor
+                .args
+                .iter()
+                .map(|s| Ident::new(s, Span::call_site()));
+
+            // Type :: constructor ( params )
+            let constructor_name = Ident::new(&constructor.name, Span::call_site());
+            quote! { #target_type :: #constructor_name ( #(#params),* )}
         } else {
-            if let Some(constructor) = &self.constructor {
-                let params = constructor
-                    .args
-                    .iter()
-                    .map(|s| Ident::new(s, Span::call_site()));
+            let params = deps.iter().map(|s| s.var_name());
 
-                // Type :: constructor ( params )
-                let constructor_name = Ident::new(&constructor.name, Span::call_site());
-                quote! { #target_type :: #constructor_name ( #(#params),* )}
-            } else {
-                let params = deps.iter().map(|s| s.var_name());
-
-                match self.kind {
-                    StructKind::Named => {
-                        // Type { params }
-                        quote! { #target_type { #(#params),* } }
-                    }
-                    StructKind::Tuple => {
-                        // Type ( params )
-                        quote! { #target_type ( #(#params),* ) }
-                    }
-                    StructKind::Unit => unreachable!(),
+            match self.kind {
+                StructKind::Named => {
+                    // Type { params }
+                    quote! { #target_type { #(#params),* } }
                 }
+                StructKind::Tuple => {
+                    // Type ( params )
+                    quote! { #target_type ( #(#params),* ) }
+                }
+                StructKind::Unit => unreachable!(),
             }
         };
 
@@ -105,20 +103,17 @@ impl DeriveInjectable {
     // Generics for: impl<A, B, C>
     fn generics_params(&self) -> Option<proc_macro2::TokenStream> {
         if !self.generics.params.is_empty() {
-            let params = self.generics.params
-                .iter()
-                .cloned()
-                .map(|t| {
-                    match t {
-                        // We remove `<T = type>` which is not allowed in `impl<A, B, C>`
-                        GenericParam::Type(mut ty) => {
-                            ty.eq_token = None;
-                            ty.default = None;
-                            GenericParam::Type(ty)
-                        }
-                        _ => t
+            let params = self.generics.params.iter().cloned().map(|t| {
+                match t {
+                    // We remove `<T = type>` which is not allowed in `impl<A, B, C>`
+                    GenericParam::Type(mut ty) => {
+                        ty.eq_token = None;
+                        ty.default = None;
+                        GenericParam::Type(ty)
                     }
-                });
+                    _ => t,
+                }
+            });
 
             Some(quote! { < #(#params),* > })
         } else {
@@ -291,14 +286,11 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
 
             // Is `Singleton<T>` or `Arc<T>`
             if (ident == "Singleton" || ident == "Arc") && !segment.arguments.is_empty() {
-                match &segment.arguments {
-                    PathArguments::AngleBracketed(bracketed) => {
-                        let generic_arg = bracketed.args.first().unwrap();
-                        if let GenericArgument::Type(Type::Path(generic_type)) = generic_arg {
-                            return Some(Type::Path(generic_type.clone()));
-                        }
+                if let PathArguments::AngleBracketed(bracketed) = &segment.arguments {
+                    let generic_arg = bracketed.args.first().unwrap();
+                    if let GenericArgument::Type(Type::Path(generic_type)) = generic_arg {
+                        return Some(Type::Path(generic_type.clone()));
                     }
-                    _ => {}
                 }
             }
 
@@ -312,7 +304,7 @@ fn get_struct_kind(data_struct: &DataStruct) -> StructKind {
     match data_struct.fields {
         Fields::Named(_) => StructKind::Named,
         Fields::Unnamed(_) => StructKind::Tuple,
-        Fields::Unit => StructKind::Unit
+        Fields::Unit => StructKind::Unit,
     }
 }
 
@@ -327,7 +319,7 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
         .filter(|attr| attr.path() == strings::INJECT)
         .collect::<Vec<_>>();
 
-    if attributes.len() > 0 {
+    if !attributes.is_empty() {
         let attr = attributes.last().unwrap();
 
         match crate::utils::convert_to_inject_attribute_map(attr) {
@@ -335,31 +327,36 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
                 for (name, value) in map {
                     match name.as_str() {
                         strings::DEFAULT => {
-                            if value.is_none() {
-                                dependency.set_default_value(DefaultValue::Infer);
-                            } else {
-                                let lit = value.unwrap().as_literal().cloned().expect(&format!(
-                                    "expected literal for default value: {}",
-                                    attr
-                                ));
+                            if let Some(default_value) = value {
+                                let lit =
+                                    default_value.as_literal().cloned().unwrap_or_else(|| {
+                                        panic!("expected literal for default value: {}", attr)
+                                    });
 
                                 dependency.set_default_value(DefaultValue::Literal(lit))
+                            } else {
+                                dependency.set_default_value(DefaultValue::Infer);
                             }
                         }
                         strings::NAME => {
-                            let s = value.as_ref().cloned().unwrap().to_string_literal().expect(
-                                &format!(
+                            let s = value
+                                .as_ref()
+                                .cloned()
+                                .unwrap()
+                                .to_string_literal()
+                                .unwrap_or_else(|| {
+                                    panic!(
                                 "expected string literal for `name` but was: `#[inject(name={})]`",
                                 value.unwrap()
-                            ),
-                            );
+                            )
+                                });
 
                             dependency.set_name(s);
                         }
                         strings::SCOPE => {
-                            let s = value.unwrap().to_string_literal().expect(&format!(
-                                "expected string literal for scope: `#[inject(scope=\"...\")]`"
-                            ));
+                            let s = value.unwrap().to_string_literal().expect(
+                                "expected string literal for scope: `#[inject(scope=\"...\")]`",
+                            );
 
                             let scope = match s.as_str() {
                                 "singleton" => Scope::Singleton,
