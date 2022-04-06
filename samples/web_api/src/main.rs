@@ -1,14 +1,17 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use dilib::Container;
-use std::sync::Arc;
+mod api;
+mod entities;
+mod repository;
+mod services;
 
-pub type SharedContainer = web::Data<Container<'static>>;
-
-#[get("/")]
-async fn hello(container: SharedContainer) -> impl Responder {
-    let hello = container.get_scoped::<String>().unwrap();
-    HttpResponse::Ok().body(hello)
-}
+use crate::entities::todo_task::TodoTask;
+use crate::repository::{in_memory::InMemoryRepository, Repository};
+use crate::services::{logger::Logger, console_logger::ConsoleLogger};
+use actix_web::{web, App, HttpServer};
+use actix_web::middleware::{NormalizePath, TrailingSlash};
+use dilib::{register_scoped_trait, register_singleton_trait, Container};
+use uuid::Uuid;
+use entities::log::Log;
+use crate::services::logger_service::LoggerService;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -21,8 +24,23 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
+            .wrap(NormalizePath::new(TrailingSlash::Always))
             .app_data(web::Data::new(create_container()))
-            .service(hello)
+            .service(
+                web::scope("/api/todos")
+                    .service(api::todo_task::get_all)
+                    .service(api::todo_task::get_by_id)
+                    .service(api::todo_task::create)
+                    .service(api::todo_task::update)
+                    .service(api::todo_task::delete)
+                    .service(api::todo_task::complete)
+                    .service(api::todo_task::toggle),
+            )
+            .service(
+                web::scope("/api/logs")
+                    .service(api::log::get_all)
+                    .service(api::log::get_by_id)
+            )
     })
     .bind(("127.0.0.1", port))?
     .run()
@@ -31,7 +49,14 @@ async fn main() -> std::io::Result<()> {
 
 fn create_container() -> Container<'static> {
     let mut container = Container::new();
-    container.add_scoped(|| String::from("Hello"));
+
+    // Scoped
+    register_scoped_trait!(container, Repository<TodoTask, Uuid>, InMemoryRepository::default());
+    register_scoped_trait!(container, Repository<Log, Uuid>, InMemoryRepository::default());
+    container.add_deps::<LoggerService>();
+
+    // Singletons
+    register_singleton_trait!(container, Logger, ConsoleLogger);
 
     container
 }
