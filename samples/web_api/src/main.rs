@@ -5,13 +5,13 @@ mod services;
 
 use crate::entities::todo_task::TodoTask;
 use crate::repository::{in_memory::InMemoryRepository, Repository};
-use crate::services::{logger::Logger, console_logger::ConsoleLogger};
-use actix_web::{web, App, HttpServer};
-use actix_web::middleware::{NormalizePath, TrailingSlash};
-use dilib::{register_scoped_trait, register_singleton_trait, Container};
-use uuid::Uuid;
-use entities::log::Log;
 use crate::services::logger_service::LoggerService;
+use crate::services::{console_logger::ConsoleLogger, logger::Logger};
+use actix_web::middleware::{NormalizePath, TrailingSlash};
+use actix_web::{web, App, HttpServer};
+use dilib::{register_scoped_trait, register_singleton_trait, Container};
+use entities::log::Log;
+use uuid::Uuid;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -39,7 +39,7 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api/logs")
                     .service(api::log::get_all)
-                    .service(api::log::get_by_id)
+                    .service(api::log::get_by_id),
             )
     })
     .bind(("127.0.0.1", port))?

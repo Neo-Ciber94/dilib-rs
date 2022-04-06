@@ -1,11 +1,11 @@
 use crate::repository::Entity;
 use crate::Repository;
 use lazy_static::lazy_static;
-use std::any::{TypeId, Any};
-use std::sync::{Arc, RwLock};
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::sync::{Arc, RwLock};
 
 type AnyMap = HashMap<u64, Box<dyn Any + Send + Sync>>;
 
@@ -66,7 +66,7 @@ where
     async fn add(&mut self, entity: T) -> T {
         let hash = hash(&entity.id());
         let type_id = TypeId::of::<T>();
-        let mut lock =  STORAGE.write().unwrap();
+        let mut lock = STORAGE.write().unwrap();
 
         // We only create new map if it doesn't exist
         let entities = lock.entry(type_id).or_insert_with(HashMap::new);

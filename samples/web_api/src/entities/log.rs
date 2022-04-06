@@ -1,9 +1,9 @@
-use std::net::IpAddr;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use crate::repository::Entity;
 use crate::services::logger::LogLevel;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
+use uuid::Uuid;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Clone, Serialize, Deserialize)]

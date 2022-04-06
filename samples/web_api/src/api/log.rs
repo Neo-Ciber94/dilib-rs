@@ -1,9 +1,9 @@
-use actix_web::web::{Data, Path};
-use actix_web::{ get, HttpResponse, Responder};
-use uuid::Uuid;
-use dilib::{Container, get_scoped_trait};
 use crate::entities::log::Log;
 use crate::Repository;
+use actix_web::web::{Data, Path};
+use actix_web::{get, HttpResponse, Responder};
+use dilib::{get_scoped_trait, Container};
+use uuid::Uuid;
 
 type SharedContainer = Data<Container<'static>>;
 
