@@ -9,7 +9,8 @@ use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
 
 lazy_static! {
-    static ref STORAGE: Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>> = Default::default();
+    static ref STORAGE: Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>> =
+        Default::default();
 }
 
 pub struct InMemoryRepository<T, Id> {

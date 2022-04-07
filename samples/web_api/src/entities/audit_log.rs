@@ -1,8 +1,8 @@
 use crate::repositories::Entity;
-use chrono::{DateTime, MIN_DATETIME, Utc};
+use actix_web::http::Method;
+use chrono::{DateTime, Utc, MIN_DATETIME};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
-use actix_web::http::Method;
 use uuid::Uuid;
 
 #[allow(clippy::upper_case_acronyms)]
@@ -31,7 +31,7 @@ pub enum LogLevel {
     #[serde(rename = "WARN")]
     Warn,
     #[serde(rename = "ERROR")]
-    Error
+    Error,
 }
 
 impl From<Method> for HttpVerb {

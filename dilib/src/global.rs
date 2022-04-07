@@ -25,7 +25,9 @@ pub struct InitContainerError(InitContainerErrorKind);
 impl Debug for InitContainerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
-            InitContainerErrorKind::Initializing => write!(f, "The container was initializing"),
+            InitContainerErrorKind::Initializing => {
+                write!(f, "The container was initializing")
+            },
             InitContainerErrorKind::AlreadyInitialized => {
                 write!(f, "The container was already initialized")
             }
@@ -65,11 +67,11 @@ where
     }
 }
 
-/// Returns a reference to the global [`Container`].
-pub fn get_container() -> &'static Container<'static> {
+/// Returns a reference to the global [`Container`] or `None` if is not initialized.
+pub fn get_container() -> Option<&'static Container<'static>> {
     match STATE.load(Ordering::SeqCst) {
-        INITIALIZED => unsafe { &*CONTAINER.load(Ordering::SeqCst) },
-        _ => panic!("Container not initialized"),
+        INITIALIZED => unsafe { Some(&*CONTAINER.load(Ordering::SeqCst)) },
+        _ => None,
     }
 }
 
@@ -77,26 +79,24 @@ pub fn get_container() -> &'static Container<'static> {
 macro_rules! get_scoped {
     ($scoped_type:ty) => {
         $crate::global::get_container()
+            .expect("The container is not initialized")
             .get_scoped::<$scoped_type>()
-            .expect(concat!(stringify!($scoped_type), " not found"))
     };
 
     ($scoped_type:ty, $name:expr) => {
         $crate::global::get_container()
+            .expect("The container is not initialized")
             .get_scoped_with_name::<$scoped_type>($name)
-            .expect(concat!(stringify!($scoped_type), " not found"))
     };
 
    (trait $trait_type:ident $(<$($generic:ident),+>)?) => {{
-        let container = $crate::global::get_container();
+        let container = $crate::global::get_container().expect("The container is not initialized");
         $crate::get_scoped_trait!(container, $trait_type $(<$($generic),+>)?)
-            .expect(concat!(stringify!($trait_type $(<$($generic),+>)?), " not found"))
     }};
 
     (trait $trait_type:ident $(<$($generic:ident),+>)?, $name:expr) => {
-        let container = $crate::global::get_container();
+        let container = $crate::global::get_container().expect("The container is not initialized");
         $crate::get_scoped_trait_with_name!(container, $trait_type $(<$($generic),+>)?, $name)
-            .expect(concat!(stringify!($trait_type $(<$($generic),+>)?), " not found"))
     };
 }
 
@@ -104,26 +104,24 @@ macro_rules! get_scoped {
 macro_rules! get_singleton {
     ($singleton_type:ty) => {
         $crate::global::get_container()
+            .expect("The container is not initialized")
             .get_singleton::<$singleton_type>()
-            .expect(concat!(stringify!($singleton_type), " not found"))
     };
 
     ($singleton_type:ty, $name:expr) => {
         $crate::global::get_container()
+            .expect("The container is not initialized")
             .get_singleton_with_name::<$singleton_type>($name)
-            .expect(concat!(stringify!($singleton_type), " not found"))
     };
 
     (trait $trait_type:ident $(<$($generic:ident),+>)?) => {{
-        let container = $crate::global::get_container();
+        let container = $crate::global::get_container().expect("The container is not initialized");
         $crate::get_singleton_trait!(container, $trait_type $(<$($generic),+>)?)
-            .expect(concat!(stringify!($trait_type $(<$($generic),+>)?), " not found"))
     }};
 
     (trait $trait_type:ident $(<$($generic:ident),+>)?, $name:expr) => {{
-        let container = $crate::global::get_container();
+        let container = $crate::global::get_container().expect("The container is not initialized");
         $crate::get_singleton_trait!(container, $trait_type $(<$($generic),+>)?, $name)
-            .expect(concat!(stringify!($trait_type $(<$($generic),+>)?), " not found"))
     }};
 }
 
@@ -158,9 +156,10 @@ mod tests {
             container.add_singleton(Mutex::new(5_i32));
             register_singleton_trait!(container, Greeter, EnglishGreeter);
             register_scoped_trait!(container, Greeter, SpanishGreeter);
-        }).unwrap();
+        })
+        .unwrap();
 
-        let container = get_container();
+        let container = get_container().unwrap();
 
         assert_eq!(
             container.get_scoped::<String>().unwrap(),
@@ -175,16 +174,16 @@ mod tests {
             5_i32
         );
 
-        let r1 = get_scoped!(String);
+        let r1 = get_scoped!(String).unwrap();
         assert_eq!(r1, "Hello World".to_owned());
 
-        let r2 = get_singleton!(Mutex<i32>);
+        let r2 = get_singleton!(Mutex<i32>).unwrap();
         assert_eq!(*r2.lock().unwrap(), 5_i32);
 
-        let r3 = get_scoped!(trait Greeter);
+        let r3 = get_scoped!(trait Greeter).unwrap();
         assert_eq!(r3.greet(), "Hola, mundo!");
 
-        let r4 = get_singleton!(trait Greeter);
+        let r4 = get_singleton!(trait Greeter).unwrap();
         assert_eq!(r4.greet(), "Hello, world!");
     }
 }

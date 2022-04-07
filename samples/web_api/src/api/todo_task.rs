@@ -38,12 +38,8 @@ pub async fn get_by_id(
     let repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
 
     match repository.get(id).await {
-        Some(task) => {
-            HttpResponse::Ok().json(task)
-        }
-        None => {
-            HttpResponse::NotFound().finish()
-        }
+        Some(task) => HttpResponse::Ok().json(task),
+        None => HttpResponse::NotFound().finish(),
     }
 }
 
@@ -99,12 +95,8 @@ pub async fn delete(
     let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
 
     match repository.delete(id).await {
-        Some(task) => {
-            HttpResponse::Ok().json(task)
-        }
-        None => {
-            HttpResponse::NotFound().finish()
-        }
+        Some(task) => HttpResponse::Ok().json(task),
+        None => HttpResponse::NotFound().finish(),
     }
 }
 

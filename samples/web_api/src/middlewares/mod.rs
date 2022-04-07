@@ -1,5 +1,6 @@
 use crate::entities::audit_log::LogLevel;
 use crate::{AuditLog, AuditLogService};
+use actix_web::http::Method;
 use actix_web::web::Data;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -8,7 +9,6 @@ use actix_web::{
 use dilib::Container;
 use futures_util::future::LocalBoxFuture;
 use std::future::{ready, Ready};
-use actix_web::http::Method;
 pub struct AuditLogger;
 
 impl<S, B> Transform<S, ServiceRequest> for AuditLogger

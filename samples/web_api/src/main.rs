@@ -5,6 +5,7 @@ mod repositories;
 mod services;
 
 use crate::entities::todo_task::TodoTask;
+use crate::middlewares::AuditLogger;
 use crate::repositories::{in_memory::InMemoryRepository, Repository};
 use crate::services::audit_log_service::AuditLogService;
 use actix_web::middleware;
@@ -12,7 +13,6 @@ use actix_web::{web, App, HttpServer};
 use dilib::{register_scoped_trait, Container};
 use entities::audit_log::AuditLog;
 use uuid::Uuid;
-use crate::middlewares::AuditLogger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
