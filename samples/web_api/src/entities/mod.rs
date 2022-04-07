@@ -1,2 +1,2 @@
-pub mod log;
+pub mod audit_log;
 pub mod todo_task;

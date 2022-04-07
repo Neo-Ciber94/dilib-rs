@@ -1,17 +1,18 @@
 mod api;
 mod entities;
-mod repository;
+mod middlewares;
+mod repositories;
 mod services;
 
 use crate::entities::todo_task::TodoTask;
-use crate::repository::{in_memory::InMemoryRepository, Repository};
-use crate::services::logger_service::LoggerService;
-use crate::services::{console_logger::ConsoleLogger, logger::Logger};
-use actix_web::middleware::{NormalizePath, TrailingSlash};
+use crate::repositories::{in_memory::InMemoryRepository, Repository};
+use crate::services::audit_log_service::AuditLogService;
+use actix_web::middleware;
 use actix_web::{web, App, HttpServer};
-use dilib::{register_scoped_trait, register_singleton_trait, Container};
-use entities::log::Log;
+use dilib::{register_scoped_trait, Container};
+use entities::audit_log::AuditLog;
 use uuid::Uuid;
+use crate::middlewares::AuditLogger;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -24,7 +25,9 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            .wrap(NormalizePath::new(TrailingSlash::Always))
+            .wrap(middleware::NormalizePath::trim())
+            .wrap(middleware::Logger::default())
+            .wrap(AuditLogger)
             .app_data(web::Data::new(create_container()))
             .service(
                 web::scope("/api/todos")
@@ -52,11 +55,10 @@ fn create_container() -> Container<'static> {
 
     // Scoped
     register_scoped_trait!(container, Repository<TodoTask, Uuid>, InMemoryRepository::default());
-    register_scoped_trait!(container, Repository<Log, Uuid>, InMemoryRepository::default());
-    container.add_deps::<LoggerService>();
+    register_scoped_trait!(container, Repository<AuditLog, Uuid>, InMemoryRepository::default());
+    container.add_deps::<AuditLogService>();
 
     // Singletons
-    register_singleton_trait!(container, Logger, ConsoleLogger);
 
     container
 }

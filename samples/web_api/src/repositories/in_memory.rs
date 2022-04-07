@@ -1,16 +1,15 @@
-use crate::repository::Entity;
+use crate::repositories::Entity;
 use crate::Repository;
 use lazy_static::lazy_static;
 use std::any::{Any, TypeId};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
 
-type AnyMap = HashMap<u64, Box<dyn Any + Send + Sync>>;
-
 lazy_static! {
-    static ref STORAGE: Arc<RwLock<HashMap<TypeId, AnyMap>>> = Default::default();
+    static ref STORAGE: Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>> = Default::default();
 }
 
 pub struct InMemoryRepository<T, Id> {
@@ -38,10 +37,9 @@ where
         let type_id = TypeId::of::<T>();
 
         if let Some(entities) = STORAGE.read().unwrap().get(&type_id) {
-            for entity in entities.values() {
-                if let Some(e) = entity.downcast_ref::<T>().cloned() {
-                    result.push(e);
-                }
+            let map = entities.downcast_ref::<HashMap<u64, T>>().unwrap();
+            for entity in map.values() {
+                result.push(entity.clone());
             }
         }
 
@@ -52,11 +50,10 @@ where
         let type_id = TypeId::of::<T>();
 
         if let Some(entities) = STORAGE.read().unwrap().get(&type_id) {
+            let map = entities.downcast_ref::<HashMap<u64, T>>().unwrap();
             let hash = hash(&id);
-            if let Some(entity) = entities.get(&hash) {
-                if let Some(e) = entity.downcast_ref::<T>().cloned() {
-                    return Some(e);
-                }
+            if let Some(entity) = map.get(&hash) {
+                return Some(entity.clone());
             }
         }
 
@@ -69,8 +66,18 @@ where
         let mut lock = STORAGE.write().unwrap();
 
         // We only create new map if it doesn't exist
-        let entities = lock.entry(type_id).or_insert_with(HashMap::new);
-        entities.insert(hash, Box::new(entity.clone()));
+        match lock.entry(type_id) {
+            Entry::Occupied(any) => {
+                let map = any.into_mut().downcast_mut::<HashMap<u64, T>>().unwrap();
+                map.insert(hash, entity.clone());
+            }
+            Entry::Vacant(any) => {
+                let mut map = HashMap::new();
+                map.insert(hash, entity.clone());
+                any.insert(Box::new(map));
+            }
+        }
+
         entity
     }
 
@@ -79,8 +86,9 @@ where
         let hash = hash(&entity.id());
 
         if let Some(entities) = STORAGE.write().unwrap().get_mut(&type_id) {
-            if let Some(entity_to_update) = entities.get_mut(&hash) {
-                *entity_to_update = Box::new(entity.clone());
+            let map = entities.downcast_mut::<HashMap<u64, T>>().unwrap();
+            if let Some(entity_to_update) = map.get_mut(&hash) {
+                *entity_to_update = entity.clone();
                 return Some(entity);
             }
         }
@@ -93,10 +101,9 @@ where
         let hash = hash(&id);
 
         if let Some(entities) = STORAGE.write().unwrap().get_mut(&type_id) {
-            if let Some(entity_to_delete) = entities.remove(&hash) {
-                if let Some(e) = entity_to_delete.downcast_ref::<T>() {
-                    return Some(e.clone());
-                }
+            let map = entities.downcast_mut::<HashMap<u64, T>>().unwrap();
+            if let Some(entity_to_delete) = map.remove(&hash) {
+                return Some(entity_to_delete.clone());
             }
         }
 
