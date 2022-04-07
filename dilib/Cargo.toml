@@ -12,6 +12,7 @@ documentation = "https://docs.rs/dilib/"
 
 [features]
 derive = ["dilib-derive"]
+global = []
 
 [dependencies]
 dilib-derive = { version="0.1.0-alpha", optional = true }

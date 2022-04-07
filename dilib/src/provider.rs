@@ -18,6 +18,7 @@ pub enum ProviderKind {
 pub enum Provider {
     /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
+    // todo: Use Rc<dyn Any> instead
     /// A provider that returns the same value each time is required.
     Singleton(Arc<dyn Any>),
 }

@@ -199,23 +199,23 @@ macro_rules! get_scoped_trait {
 #[macro_export]
 macro_rules! register_singleton_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        type SafeTrait = dyn $trait_type $(<$($generic)+>)? + Send + Sync;
+        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton::<std::boxed::Box<SafeTrait>>(x)
     }};
 
     ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        type SafeTrait = dyn $trait_type + Send + Sync;
+        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x)
     }};
 
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
-        $crate::register_singleton_trait!($container, $trait_type $(<$($generic)+>)?, $impl_expr);
+        $crate::register_singleton_trait!($container, $trait_type $(<$($generic),+>)?, $impl_expr);
     }};
 
     ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
-        $crate::register_singleton_trait!($container, $trait_type $(<$($generic)+>)?, $name: literal, $impl_expr);
+        $crate::register_singleton_trait!($container, $trait_type $(<$($generic),+>)?, $name: literal, $impl_expr);
     }};
 }
 
@@ -230,18 +230,15 @@ macro_rules! register_singleton_trait {
 #[macro_export]
 macro_rules! get_singleton_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?) => {{
-        type SafeTrait = dyn $trait_type $(<$($generic)+>)? + Send + Sync;
-        let ret = $container.get_singleton::<std::boxed::Box<SafeTrait>>();
+        let ret = $container.get_singleton::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync)>>();
         ret
     }};
 
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $name:literal) => {{
-        type SafeTrait = dyn $trait_type $(<$($generic)+>)? + Send + Sync;
-        let ret = $container.get_singleton_with_name::<std::boxed::Box<SafeTrait>>($name);
+        let ret = $container.get_singleton_with_name::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync)>>($name);
         ret
     }};
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -252,7 +249,7 @@ mod tests {
         let mut container = Container::new();
         register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10));
 
-        let ret = get_scoped_trait!(container, Gen1<i32>).unwrap();
+        let _ret = get_scoped_trait!(container, Gen1<i32>).unwrap();
     }
 
     #[test]
@@ -260,7 +257,7 @@ mod tests {
         let mut container = Container::new();
         register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false));
 
-        let ret = get_scoped_trait!(container, Gen2<i32, bool>).unwrap();
+        let _ret = get_scoped_trait!(container, Gen2<i32, bool>).unwrap();
     }
 
     #[test]
@@ -268,18 +265,18 @@ mod tests {
         let mut container = Container::new();
         register_scoped_trait!(container, Gen3<i32, bool, String>, Gen3Impl::<i32, bool, String>(10, false, String::from("test")));
 
-        let ret = get_scoped_trait!(container, Gen3<i32, bool, String>).unwrap();
+        let _ret = get_scoped_trait!(container, Gen3<i32, bool, String>).unwrap();
     }
 
-    pub trait Gen1<T1> {
+    trait Gen1<T1> {
         fn get(&self) -> &T1;
     }
 
-    pub trait Gen2<T1, T2> {
+    trait Gen2<T1, T2> {
         fn get(&self) -> (&T1, &T2);
     }
 
-    pub trait Gen3<T1, T2, T3> {
+    trait Gen3<T1, T2, T3> {
         fn get(&self) -> (&T1, &T2, &T3);
     }
 

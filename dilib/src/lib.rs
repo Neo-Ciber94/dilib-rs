@@ -89,3 +89,6 @@ extern crate dilib_derive;
 
 #[cfg(feature = "derive")]
 pub use dilib_derive::*;
+
+#[cfg(feature = "global")]
+pub mod global;
