@@ -1,6 +1,7 @@
 #![allow(unused_macros)]
 
 use crate::Container;
+use std::fmt::Debug;
 use std::sync::atomic::{AtomicPtr, AtomicU8, Ordering};
 
 static CONTAINER: AtomicPtr<Container<'static>> = AtomicPtr::new(0 as *mut Container<'static>);
@@ -10,8 +11,30 @@ const UNINITIALIZED: u8 = 0;
 const INITIALIZING: u8 = 1;
 const INITIALIZED: u8 = 2;
 
+/// Container initialization errors.
+pub enum InitContainerErrorKind {
+    /// The container was initializing.
+    Initializing,
+    /// The container was already initialized.
+    AlreadyInitialized,
+}
+
+/// Error returned when the container initialization failed.
+pub struct InitContainerError(InitContainerErrorKind);
+
+impl Debug for InitContainerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            InitContainerErrorKind::Initializing => write!(f, "The container was initializing"),
+            InitContainerErrorKind::AlreadyInitialized => {
+                write!(f, "The container was already initialized")
+            }
+        }
+    }
+}
+
 /// Initializes the global [`Container`].
-pub fn init_container<F>(f: F)
+pub fn init_container<F>(f: F) -> Result<(), InitContainerError>
 where
     F: FnOnce(&mut Container<'static>),
 {
@@ -27,10 +50,18 @@ where
             let ptr = Box::into_raw(Box::new(container));
             CONTAINER.store(ptr, Ordering::SeqCst);
             STATE.store(INITIALIZED, Ordering::SeqCst);
+            Ok(())
         }
-        _ => {
-            panic!("Container already initialized");
+        Ok(INITIALIZING) => {
+            while STATE.load(Ordering::SeqCst) == INITIALIZING {
+                std::hint::spin_loop();
+            }
+
+            Err(InitContainerError(InitContainerErrorKind::Initializing))
         }
+        _ => Err(InitContainerError(
+            InitContainerErrorKind::AlreadyInitialized,
+        )),
     }
 }
 
@@ -99,8 +130,8 @@ macro_rules! get_singleton {
 #[cfg(test)]
 mod tests {
     use crate::global::{get_container, init_container};
-    use std::sync::Mutex;
     use crate::{register_scoped_trait, register_singleton_trait};
+    use std::sync::Mutex;
 
     pub trait Greeter {
         fn greet(&self) -> &str;
@@ -127,7 +158,7 @@ mod tests {
             container.add_singleton(Mutex::new(5_i32));
             register_singleton_trait!(container, Greeter, EnglishGreeter);
             register_scoped_trait!(container, Greeter, SpanishGreeter);
-        });
+        }).unwrap();
 
         let container = get_container();
 
