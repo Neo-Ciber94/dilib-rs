@@ -15,7 +15,7 @@ impl Scoped {
     pub fn from_factory<T, F>(f: F) -> Self
     where
         T: 'static,
-        F: Fn() -> T + 'static,
+        F: Fn() -> T + Send + Sync + 'static,
     {
         let inner = BoxClosure::from_fn(f);
         let type_id = TypeId::of::<T>();
@@ -26,7 +26,7 @@ impl Scoped {
     pub fn from_injectable<T, F>(f: F) -> Self
     where
         T: 'static,
-        F: Fn(&Container) -> T + 'static,
+        F: Fn(&Container) -> T + Send + Sync + 'static,
     {
         let inner = BoxClosure::from_fn_arg(f);
         let type_id = TypeId::of::<T>();
@@ -38,7 +38,10 @@ impl Scoped {
     /// # Returns `None` if:
     /// - The inner function is not in the form `fn() -> T`.
     /// - The given type `T` don't match the return type of the factory.
-    pub fn call_factory<T: 'static>(&self) -> Option<T> {
+    pub fn call_factory<T>(&self) -> Option<T>
+    where
+        T: Send + Sync + 'static,
+    {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
@@ -79,17 +82,9 @@ struct InvalidFunctionType;
 
 #[derive(Clone)]
 enum BoxClosure {
-    Fn(Arc<dyn Fn() -> Box<dyn Any>>),
-    FnArg(Arc<dyn Fn(&Container) -> Box<dyn Any>>),
+    Fn(Arc<dyn Fn() -> Box<dyn Any> + Send + Sync>),
+    FnArg(Arc<dyn Fn(&Container) -> Box<dyn Any> + Send + Sync>),
 }
-
-// SAFETY: `BoxClosure` can be send to other threads
-// because it don't hold an inner mutable state, a call just returns a value.
-unsafe impl Send for BoxClosure {}
-
-// SAFETY: `BoxClosure` is readonly, is safe for multiple threads to call the inner function
-// because it don't mutates, a call just returns a value.
-unsafe impl Sync for BoxClosure {}
 
 impl Debug for BoxClosure {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -104,18 +99,18 @@ impl BoxClosure {
     pub fn from_fn<T, F>(f: F) -> Self
     where
         T: 'static,
-        F: Fn() -> T + 'static,
+        F: Fn() -> T + Send + Sync + 'static,
     {
-        let func: Arc<dyn Fn() -> Box<dyn Any>> = Arc::new(move || Box::new(f()));
+        let func: Arc<dyn Fn() -> Box<dyn Any> + Send + Sync> = Arc::new(move || Box::new(f()));
         BoxClosure::Fn(func)
     }
 
     pub fn from_fn_arg<T, F>(f: F) -> Self
     where
         T: 'static,
-        F: Fn(&Container) -> T + 'static,
+        F: Fn(&Container) -> T + Send + Sync + 'static,
     {
-        let func: Arc<dyn Fn(&Container) -> Box<dyn Any>> =
+        let func: Arc<dyn Fn(&Container) -> Box<dyn Any> + Send + Sync> =
             Arc::new(move |c: &Container| Box::new(f(c)));
         BoxClosure::FnArg(func)
     }

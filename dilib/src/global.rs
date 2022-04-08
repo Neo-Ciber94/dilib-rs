@@ -27,7 +27,7 @@ impl Debug for InitContainerError {
         match self.0 {
             InitContainerErrorKind::Initializing => {
                 write!(f, "The container was initializing")
-            },
+            }
             InitContainerErrorKind::AlreadyInitialized => {
                 write!(f, "The container was already initialized")
             }

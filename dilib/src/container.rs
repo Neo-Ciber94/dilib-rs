@@ -9,15 +9,6 @@ use std::sync::Arc;
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<T>;
 
-// Insertion operation when adding new providers
-#[derive(Debug, Eq, PartialEq)]
-enum Operation {
-    // Replace the provider if exist
-    ReplaceIfExist,
-    // Don't insert if the provider exist
-    NoneIfExist,
-}
-
 /// Represents a store to register and retrieve objects.
 #[derive(Default, Clone)]
 pub struct Container<'a> {
@@ -37,10 +28,10 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_scoped<T, F>(&mut self, f: F) -> Option<Provider>
     where
-        T: 'static,
-        F: Fn() -> T + 'static,
+        T: Send + Sync + 'static,
+        F: Fn() -> T + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(Operation::ReplaceIfExist, Scoped::from_factory(f), None)
+        self.add_scoped_internal::<T>(Scoped::from_factory(f), None)
     }
 
     /// Adds a scoped factory function with a name, and returns the previously registered
@@ -48,23 +39,19 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_scoped_with_name<T, F>(&mut self, name: &str, f: F) -> Option<Provider>
     where
-        T: 'static,
-        F: Fn() -> T + 'static,
+        T: Send + Sync + 'static,
+        F: Fn() -> T + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(
-            Operation::ReplaceIfExist,
-            Scoped::from_factory(f),
-            Some(name),
-        )
+        self.add_scoped_internal::<T>(Scoped::from_factory(f), Some(name))
     }
 
     /// Adds a singleton, and returns the previously registered provider for the given type, if any.
     #[inline]
     pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
-        self.add_singleton_internal(Operation::ReplaceIfExist, None, value)
+        self.add_singleton_internal(None, value)
     }
 
     /// Adds a singleton with a name, and returns the previously registered provider
@@ -72,9 +59,9 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_singleton_with_name<T>(&mut self, name: &str, value: T) -> Option<Provider>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
-        self.add_singleton_internal(Operation::ReplaceIfExist, Some(name), value)
+        self.add_singleton_internal(Some(name), value)
     }
 
     /// Adds a scoped `Injectable` that depends on others providers,
@@ -82,13 +69,9 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_deps<T>(&mut self) -> Option<Provider>
     where
-        T: Injectable + 'static,
+        T: Injectable + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(
-            Operation::ReplaceIfExist,
-            Scoped::from_injectable(T::resolve),
-            None,
-        )
+        self.add_scoped_internal::<T>(Scoped::from_injectable(T::resolve), None)
     }
 
     /// Adds a scoped named `Injectable` that depends on others providers,
@@ -96,13 +79,9 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_deps_with_name<T>(&mut self, name: &str) -> Option<Provider>
     where
-        T: Injectable + 'static,
+        T: Injectable + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(
-            Operation::ReplaceIfExist,
-            Scoped::from_injectable(T::resolve),
-            Some(name),
-        )
+        self.add_scoped_internal::<T>(Scoped::from_injectable(T::resolve), Some(name))
     }
 
     /// Returns a value registered for the given type or `None`
@@ -110,7 +89,10 @@ impl<'a> Container<'a> {
     ///
     /// The returning value could be either scoped or a singleton.
     #[inline]
-    pub fn get<T: 'static>(&self) -> Option<Resolved<T>> {
+    pub fn get<T>(&self) -> Option<Resolved<T>>
+    where
+        T: Send + Sync + 'static,
+    {
         self.get_internal::<T>(None)
     }
 
@@ -119,7 +101,10 @@ impl<'a> Container<'a> {
     ///
     /// The returning value could be either scoped or a singleton.
     #[inline]
-    pub fn get_with_name<T: 'static>(&self, name: &str) -> Option<Resolved<T>> {
+    pub fn get_with_name<T>(&self, name: &str) -> Option<Resolved<T>>
+    where
+        T: Send + Sync + 'static,
+    {
         self.get_internal::<T>(Some(name))
     }
 
@@ -128,7 +113,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_scoped<T>(&self) -> Option<T>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         self.get_internal::<T>(None).and_then(|r| r.into_scoped())
     }
@@ -138,7 +123,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_scoped_with_name<T>(&self, name: &str) -> Option<T>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         self.get_internal::<T>(Some(name))
             .and_then(|r| r.into_scoped())
@@ -149,7 +134,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         self.get_internal::<T>(None)
             .and_then(|r| r.into_singleton())
@@ -160,7 +145,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn get_singleton_with_name<T>(&self, name: &str) -> Option<Singleton<T>>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         self.get_internal::<T>(Some(name))
             .and_then(|r| r.into_singleton())
@@ -204,42 +189,18 @@ impl<'a> Container<'a> {
 
     ////// Helper methods
 
-    fn add_scoped_internal<T>(
-        &mut self,
-        op: Operation,
-        scoped: Scoped,
-        name: Option<&str>,
-    ) -> Option<Provider>
+    fn add_scoped_internal<T>(&mut self, scoped: Scoped, name: Option<&str>) -> Option<Provider>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
-        if op == Operation::NoneIfExist {
-            let key = key_for::<T>(name);
-            if self.contains(key) {
-                return None;
-            }
-        }
-
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_singleton_internal<T>(
-        &mut self,
-        op: Operation,
-        name: Option<&str>,
-        value: T,
-    ) -> Option<Provider>
+    fn add_singleton_internal<T>(&mut self, name: Option<&str>, value: T) -> Option<Provider>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
-        if op == Operation::NoneIfExist {
-            let key = key_for::<T>(name);
-            if self.contains(key) {
-                return None;
-            }
-        }
-
         let singleton = Arc::new(value);
         let name = name.map(|s| s.to_string());
         self.add_provider::<T>(Provider::Singleton(singleton), name)
@@ -247,7 +208,7 @@ impl<'a> Container<'a> {
 
     fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, name);
@@ -291,13 +252,6 @@ impl<'a> Container<'a> {
         let key = InjectionKey::new(type_id, name);
         self.providers.insert(key, provider)
     }
-}
-
-// Helper
-#[inline(always)]
-fn key_for<T: 'static>(name: Option<&str>) -> InjectionKey {
-    let type_id = TypeId::of::<T>();
-    InjectionKey::new(type_id, name)
 }
 
 #[cfg(test)]

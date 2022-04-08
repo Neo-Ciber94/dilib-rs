@@ -18,14 +18,9 @@ pub enum ProviderKind {
 pub enum Provider {
     /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
-    // todo: Use Rc<dyn Any> instead
     /// A provider that returns the same value each time is required.
-    Singleton(Arc<dyn Any>),
+    Singleton(Arc<dyn Any + Send + Sync>),
 }
-
-// TODO: Remove
-unsafe impl Send for Provider {}
-unsafe impl Sync for Provider {}
 
 impl Provider {
     /// Returns `true` if the provider is scoped.
@@ -50,7 +45,7 @@ impl Provider {
     #[inline]
     pub fn get_scoped<T>(&self) -> Option<T>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         match self {
             Provider::Scoped(f) if f.is_factory() => f.call_factory::<T>(),
@@ -75,10 +70,10 @@ impl Provider {
     #[inline]
     pub fn get_singleton<T>(&self) -> Option<Singleton<T>>
     where
-        T: 'static,
+        T: Send + Sync + 'static,
     {
         match self {
-            Provider::Singleton(value) => downcast_clone_arc(value).ok(),
+            Provider::Singleton(value) => value.clone().downcast().ok(),
             _ => None,
         }
     }
@@ -90,24 +85,5 @@ impl Debug for Provider {
             Provider::Scoped(scoped) => write!(f, "Provider::Scoped({:?})", scoped),
             Provider::Singleton(_) => write!(f, "Provider::Singleton(..))"),
         }
-    }
-}
-
-fn downcast_clone_arc<T>(value: &Arc<dyn Any>) -> Result<Arc<T>, Arc<dyn Any>>
-where
-    T: Any + 'static,
-{
-    downcast_arc(value.clone())
-}
-
-fn downcast_arc<T>(arc: Arc<dyn Any>) -> Result<Arc<T>, Arc<dyn Any>>
-where
-    T: Any + 'static,
-{
-    if (*arc).is::<T>() {
-        let raw = Arc::into_raw(arc).cast::<T>();
-        unsafe { Ok(Arc::from_raw(raw)) }
-    } else {
-        Err(arc)
     }
 }

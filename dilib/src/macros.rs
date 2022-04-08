@@ -74,8 +74,8 @@
 #[macro_export]
 macro_rules! register_scoped_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        $container.add_scoped(|| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)?> {
-            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)?> = {
+        $container.add_scoped(|| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
+            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
                 let value = $impl_expr;
                 std::boxed::Box::new(value)
             };
@@ -85,8 +85,8 @@ macro_rules! register_scoped_trait {
     }};
 
     ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        $container.add_scoped_with_name($name, || -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)?> {
-            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)?> = {
+        $container.add_scoped_with_name($name, || -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
+            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
                 let value = $impl_expr;
                 std::boxed::Box::new(value)
             };
@@ -115,12 +115,12 @@ macro_rules! register_scoped_trait {
 #[macro_export]
 macro_rules! get_scoped_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?) => {{
-        let ret: std::option::Option<Box<dyn $trait_type $(<$($generic),+>)?>> = $container.get_scoped();
+        let ret: std::option::Option<Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static>> = $container.get_scoped();
         ret
     }};
 
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $name:literal) => {{
-        let ret: std::option::Option<Box<dyn $trait_type $(<$($generic),+>)?>> = $container.get_scoped_with_name($name);
+        let ret: std::option::Option<Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static>> = $container.get_scoped_with_name($name);
         ret
     }};
 }
@@ -199,13 +199,13 @@ macro_rules! get_scoped_trait {
 #[macro_export]
 macro_rules! register_singleton_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync;
+        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton::<std::boxed::Box<SafeTrait>>(x)
     }};
 
     ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
-        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync;
+        type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x)
     }};
@@ -230,12 +230,12 @@ macro_rules! register_singleton_trait {
 #[macro_export]
 macro_rules! get_singleton_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?) => {{
-        let ret = $container.get_singleton::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync)>>();
+        let ret = $container.get_singleton::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static)>>();
         ret
     }};
 
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $name:literal) => {{
-        let ret = $container.get_singleton_with_name::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync)>>($name);
+        let ret = $container.get_singleton_with_name::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static)>>($name);
         ret
     }};
 }
