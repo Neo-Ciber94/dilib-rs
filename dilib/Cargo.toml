@@ -11,6 +11,7 @@ homepage = "https://crates.io/crates/dilib/"
 documentation = "https://docs.rs/dilib/"
 
 [features]
+full = ["derive", "global"]
 derive = ["dilib-derive"]
 global = []
 

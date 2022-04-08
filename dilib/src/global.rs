@@ -76,6 +76,7 @@ pub fn get_container() -> Option<&'static Container<'static>> {
 }
 
 /// Returns a scoped value from the global [`Container`].
+#[macro_export]
 macro_rules! get_scoped {
     ($scoped_type:ty) => {
         $crate::global::get_container()
@@ -101,6 +102,7 @@ macro_rules! get_scoped {
 }
 
 /// Returns a singleton value from the global [`Container`].
+#[macro_export]
 macro_rules! get_singleton {
     ($singleton_type:ty) => {
         $crate::global::get_container()

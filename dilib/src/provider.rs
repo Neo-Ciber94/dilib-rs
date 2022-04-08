@@ -23,6 +23,10 @@ pub enum Provider {
     Singleton(Arc<dyn Any>),
 }
 
+// TODO: Remove
+unsafe impl Send for Provider {}
+unsafe impl Sync for Provider {}
+
 impl Provider {
     /// Returns `true` if the provider is scoped.
     pub fn is_scoped(&self) -> bool {

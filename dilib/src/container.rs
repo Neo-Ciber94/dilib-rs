@@ -272,6 +272,16 @@ impl<'a> Container<'a> {
         }
     }
 
+    // TODO: Remove
+    #[doc(hidden)]
+    pub fn __add_provider(
+        &mut self,
+        key: InjectionKey<'a>,
+        provider: Provider,
+    ) -> Option<Provider> {
+        self.providers.insert(key, provider)
+    }
+
     pub(crate) fn add_provider<T: 'static>(
         &mut self,
         provider: Provider,
