@@ -93,12 +93,12 @@ macro_rules! get_scoped {
    (trait $trait_type:ident $(<$($generic:ident),+>)?) => {{
         let container = $crate::global::get_container().expect("The container is not initialized");
         $crate::get_scoped_trait!(container, $trait_type $(<$($generic),+>)?)
-    }};
+   }};
 
-    (trait $trait_type:ident $(<$($generic:ident),+>)?, $name:expr) => {
+   (trait $trait_type:ident $(<$($generic:ident),+>)?, $name:expr) => {{
         let container = $crate::global::get_container().expect("The container is not initialized");
-        $crate::get_scoped_trait_with_name!(container, $trait_type $(<$($generic),+>)?, $name)
-    };
+        $crate::get_scoped_trait!(container, $trait_type $(<$($generic),+>)?, $name)
+   }};
 }
 
 /// Returns a singleton value from the global [`Container`].
@@ -154,10 +154,10 @@ mod tests {
     #[test]
     fn global_container_test() {
         init_container(|container| {
-            container.add_scoped(|| String::from("Hello World"));
-            container.add_singleton(Mutex::new(5_i32));
-            register_singleton_trait!(container, Greeter, EnglishGreeter);
-            register_scoped_trait!(container, Greeter, SpanishGreeter);
+            container.add_scoped(|| String::from("Hello World")).unwrap();
+            container.add_singleton(Mutex::new(5_i32)).unwrap();
+            register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
+            register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
         })
         .unwrap();
 
@@ -182,7 +182,7 @@ mod tests {
         let r2 = get_singleton!(Mutex<i32>).unwrap();
         assert_eq!(*r2.lock().unwrap(), 5_i32);
 
-        let r3 = get_scoped!(trait Greeter).unwrap();
+        let r3 = get_scoped!(trait Greeter, "es").unwrap();
         assert_eq!(r3.greet(), "Hola, mundo!");
 
         let r4 = get_singleton!(trait Greeter).unwrap();

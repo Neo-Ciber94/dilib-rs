@@ -23,10 +23,13 @@ impl<'a> Container<'a> {
         }
     }
 
-    /// Adds a scoped factory function, and returns the previously registered
-    /// provider for the given type, if any.
+    /// Adds a scoped factory function.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_scoped<T, F>(&mut self, f: F) -> Option<Provider>
+    pub fn add_scoped<T, F>(&mut self, f: F) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
         F: Fn() -> T + Send + Sync + 'static,
@@ -34,10 +37,13 @@ impl<'a> Container<'a> {
         self.add_scoped_internal::<T>(Scoped::from_factory(f), None)
     }
 
-    /// Adds a scoped factory function with a name, and returns the previously registered
-    /// provider for the given type and name, if any.
+    /// Adds a scoped factory function with a name.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_scoped_with_name<T, F>(&mut self, name: &str, f: F) -> Option<Provider>
+    pub fn add_scoped_with_name<T, F>(&mut self, name: &str, f: F) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
         F: Fn() -> T + Send + Sync + 'static,
@@ -45,39 +51,52 @@ impl<'a> Container<'a> {
         self.add_scoped_internal::<T>(Scoped::from_factory(f), Some(name))
     }
 
-    /// Adds a singleton, and returns the previously registered provider for the given type, if any.
+    /// Adds a singleton.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_singleton<T>(&mut self, value: T) -> Option<Provider>
+    pub fn add_singleton<T>(&mut self, value: T) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
         self.add_singleton_internal(None, value)
     }
 
-    /// Adds a singleton with a name, and returns the previously registered provider
-    /// for the given type and name, if any.
+    /// Adds a singleton with a name.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_singleton_with_name<T>(&mut self, name: &str, value: T) -> Option<Provider>
+    pub fn add_singleton_with_name<T>(&mut self, name: &str, value: T) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
         self.add_singleton_internal(Some(name), value)
     }
 
-    /// Adds a scoped `Injectable` that depends on others providers,
-    /// and returns the previously registered provider, if any.
+    /// Adds a scoped `Injectable` that depends on others providers.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_deps<T>(&mut self) -> Option<Provider>
+    pub fn add_deps<T>(&mut self) -> Result<(), Provider>
     where
         T: Injectable + Send + Sync + 'static,
     {
         self.add_scoped_internal::<T>(Scoped::from_injectable(T::resolve), None)
     }
 
-    /// Adds a scoped named `Injectable` that depends on others providers,
-    /// and returns the previously registered provider, if any.
+    /// Adds a scoped named `Injectable` that depends on others providers.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
     #[inline]
-    pub fn add_deps_with_name<T>(&mut self, name: &str) -> Option<Provider>
+    pub fn add_deps_with_name<T>(&mut self, name: &str) -> Result<(), Provider>
     where
         T: Injectable + Send + Sync + 'static,
     {
@@ -189,7 +208,7 @@ impl<'a> Container<'a> {
 
     ////// Helper methods
 
-    fn add_scoped_internal<T>(&mut self, scoped: Scoped, name: Option<&str>) -> Option<Provider>
+    fn add_scoped_internal<T>(&mut self, scoped: Scoped, name: Option<&str>) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
@@ -197,7 +216,7 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_singleton_internal<T>(&mut self, name: Option<&str>, value: T) -> Option<Provider>
+    fn add_singleton_internal<T>(&mut self, name: Option<&str>, value: T) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
@@ -239,18 +258,24 @@ impl<'a> Container<'a> {
         &mut self,
         key: InjectionKey<'a>,
         provider: Provider,
-    ) -> Option<Provider> {
-        self.providers.insert(key, provider)
+    ) -> Result<(), Provider> {
+        match self.providers.insert(key, provider) {
+            Some(x) => Err(x),
+            None => Ok(()),
+        }
     }
 
     pub(crate) fn add_provider<T: 'static>(
         &mut self,
         provider: Provider,
         name: Option<String>,
-    ) -> Option<Provider> {
+    ) -> Result<(), Provider> {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, name);
-        self.providers.insert(key, provider)
+        match self.providers.insert(key, provider) {
+            Some(x) => Err(x),
+            None => Ok(()),
+        }
     }
 }
 
@@ -262,7 +287,7 @@ mod tests {
     #[test]
     fn scoped_test() {
         let mut container = Container::new();
-        container.add_scoped(|| "hello world"); // &str
+        container.add_scoped(|| "hello world").unwrap(); // &str
 
         assert_eq!(container.len(), 1);
 
@@ -275,7 +300,7 @@ mod tests {
     #[test]
     fn scoped_with_name_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name("greet", || "hello world"); // &str
+        container.add_scoped_with_name("greet", || "hello world").unwrap(); // &str
 
         assert_eq!(container.len(), 1);
 
@@ -289,7 +314,7 @@ mod tests {
     #[test]
     fn singleton_test() {
         let mut container = Container::new();
-        container.add_singleton(42069_i32);
+        container.add_singleton(42069_i32).unwrap();
 
         assert_eq!(container.len(), 1);
 
@@ -302,7 +327,7 @@ mod tests {
     #[test]
     fn singleton_with_name_test() {
         let mut container = Container::new();
-        container.add_singleton_with_name("funny number", 42069_i32);
+        container.add_singleton_with_name("funny number", 42069_i32).unwrap();
 
         assert_eq!(container.len(), 1);
 
@@ -317,10 +342,10 @@ mod tests {
     #[test]
     fn contains_test() {
         let mut container = Container::new();
-        container.add_scoped(|| 200_i32);
-        container.add_scoped_with_name("number", || 999_i32);
-        container.add_singleton(String::from("have a good day"));
-        container.add_singleton_with_name("bye", "adios amigo");
+        container.add_scoped(|| 200_i32).unwrap();
+        container.add_scoped_with_name("number", || 999_i32).unwrap();
+        container.add_singleton(String::from("have a good day")).unwrap();
+        container.add_singleton_with_name("bye", "adios amigo").unwrap();
 
         assert_eq!(container.len(), 4);
 
@@ -358,9 +383,9 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", Mutex::new(0_usize));
-        container.add_deps::<Greeter>();
-        container.add_scoped_with_name("en_msg", || String::from("hello"));
+        container.add_singleton_with_name("counter", Mutex::new(0_usize)).unwrap();
+        container.add_deps::<Greeter>().unwrap();
+        container.add_scoped_with_name("en_msg", || String::from("hello")).unwrap();
 
         let greeter = container.get_scoped::<Greeter>().unwrap();
         let s = greeter.greet();
@@ -400,9 +425,9 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", Mutex::new(0_usize));
-        container.add_deps_with_name::<Greeter>("en_greeter");
-        container.add_scoped_with_name("en_msg", || String::from("hello"));
+        container.add_singleton_with_name("counter", Mutex::new(0_usize)).unwrap();
+        container.add_deps_with_name::<Greeter>("en_greeter").unwrap();
+        container.add_scoped_with_name("en_msg", || String::from("hello")).unwrap();
 
         let greeter = container
             .get_scoped_with_name::<Greeter>("en_greeter")
@@ -425,10 +450,10 @@ mod tests {
         let mut container = Container::new();
         assert_eq!(container.len(), 0);
 
-        container.add_scoped(|| true);
-        container.add_singleton(String::from("blue"));
-        container.add_scoped_with_name("number", || 200_i32);
-        container.add_singleton_with_name("color", String::from("red"));
+        container.add_scoped(|| true).unwrap();
+        container.add_singleton(String::from("blue")).unwrap();
+        container.add_scoped_with_name("number", || 200_i32).unwrap();
+        container.add_singleton_with_name("color", String::from("red")).unwrap();
 
         assert_eq!(container.len(), 4);
 
@@ -458,8 +483,8 @@ mod tests {
         let mut container = Container::new();
         assert_eq!(container.len(), 0);
 
-        container.add_scoped(|| true);
-        container.add_singleton(String::from("blue"));
+        container.add_scoped(|| true).unwrap();
+        container.add_singleton(String::from("blue")).unwrap();
 
         assert_eq!(container.len(), 2);
 
@@ -470,9 +495,9 @@ mod tests {
     #[test]
     fn providers_test() {
         let mut container = Container::new();
-        container.add_scoped(|| true);
-        container.add_singleton(0.25_f32);
-        container.add_scoped(|| 200_usize);
+        container.add_scoped(|| true).unwrap();
+        container.add_singleton(0.25_f32).unwrap();
+        container.add_scoped(|| 200_usize).unwrap();
 
         let providers = container.providers();
         assert_eq!(3, providers.clone().count());
@@ -500,8 +525,8 @@ mod tests {
     #[test]
     fn iter_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name("truthfulness", || true);
-        container.add_singleton(2500_i32);
+        container.add_scoped_with_name("truthfulness", || true).unwrap();
+        container.add_singleton(2500_i32).unwrap();
 
         let iter = container.iter();
         assert_eq!(2, iter.clone().count());

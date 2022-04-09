@@ -27,7 +27,7 @@
 /// }
 /// fn main () {
 ///     let mut container = Container::new();
-///     register_scoped_trait!(container, Greet, EnglishGreeting);
+///     register_scoped_trait!(container, Greet, EnglishGreeting).unwrap();
 ///
 ///     let greeting = get_scoped_trait!(container, Greet).unwrap();
 ///     assert_eq!(greeting.greet(), "Hello");
@@ -60,8 +60,8 @@
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_scoped_trait!(container, "hello", Greet, Hello);
-///     register_scoped_trait!(container, "bye", Greet, { Bye });
+///     register_scoped_trait!(container, "hello", Greet, Hello).unwrap();
+///     register_scoped_trait!(container, "bye", Greet, { Bye }).unwrap();
 ///
 ///     // Returns a `Box<dyn Greet>`
 ///     let hello = get_scoped_trait!(container, Greet, "hello").unwrap();
@@ -156,7 +156,7 @@ macro_rules! get_scoped_trait {
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_singleton_trait!(container, Greet, HelloWorld);
+///     register_singleton_trait!(container, Greet, HelloWorld).unwrap();
 ///
 ///     let greet = get_singleton_trait!(container, Greet).unwrap();
 ///     assert_eq!(greet.greet(), "hello world");
@@ -186,8 +186,8 @@ macro_rules! get_scoped_trait {
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     let c = register_singleton_trait!(container, "sum", BinaryOp, Sum);
-///     register_singleton_trait!(container, "prod", BinaryOp, Prod);
+///     register_singleton_trait!(container, "sum", BinaryOp, Sum).unwrap();
+///     register_singleton_trait!(container, "prod", BinaryOp, Prod).unwrap();
 ///
 ///     let sum = get_singleton_trait!(container, BinaryOp, "sum").unwrap();
 ///     let prod = get_singleton_trait!(container, BinaryOp, "prod").unwrap();
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_1() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10));
+        register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10)).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen1<i32>).unwrap();
     }
@@ -255,7 +255,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_2() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false));
+        register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false)).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen2<i32, bool>).unwrap();
     }
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_3() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen3<i32, bool, String>, Gen3Impl::<i32, bool, String>(10, false, String::from("test")));
+        register_scoped_trait!(container, Gen3<i32, bool, String>, Gen3Impl::<i32, bool, String>(10, false, String::from("test"))).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen3<i32, bool, String>).unwrap();
     }

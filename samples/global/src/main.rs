@@ -1,10 +1,10 @@
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
-use dilib::{get_scoped, InjectionKey, Provider, Scoped, Injectable};
 use dilib::global::init_container;
+use dilib::{get_scoped, Injectable, InjectionKey, Provider, Scoped};
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
-static PROVIDERS : Lazy<Mutex<Option<Vec<(InjectionKey<'static>, Provider)>>>> = Lazy::new(|| Default::default());
-
+static PROVIDERS: Lazy<Mutex<Option<Vec<(InjectionKey<'static>, Provider)>>>> =
+    Lazy::new(|| Default::default());
 
 // #[provide(with="default")]
 // struct Hello {
@@ -24,7 +24,7 @@ static PROVIDERS : Lazy<Mutex<Option<Vec<(InjectionKey<'static>, Provider)>>>> =
 //#[provide]
 #[derive(Injectable)]
 struct Greeting {
-    #[inject(default="Hola Mundo")]
+    #[inject(default = "Hola Mundo")]
     greeting: String,
 }
 
@@ -33,24 +33,23 @@ fn init() {
     let mut lock = PROVIDERS.lock().unwrap();
     let providers = lock.get_or_insert_with(|| Vec::new());
     let key = InjectionKey::of::<usize>();
-    let provider = Provider::Scoped(
-        Scoped::from_injectable::<usize, _>(|c| {
-            let x = c.get_scoped::<String>().unwrap();
-            println!("{:?}", x);
-            x.len()
-        })
-    );
+    let provider = Provider::Scoped(Scoped::from_injectable::<usize, _>(|c| {
+        let x = c.get_scoped::<String>().unwrap();
+        println!("{:?}", x);
+        x.len()
+    }));
     providers.push((key, provider));
 }
 
 fn main() {
     init_container(|c| {
-        c.add_scoped(|| String::from("Hola"));
+        c.add_scoped(|| String::from("Hola")).unwrap();
         let providers = PROVIDERS.lock().unwrap().take().unwrap();
         for (key, provider) in providers {
-            c.__add_provider(key, provider);
+            c.__add_provider(key, provider).unwrap();
         }
-    }).unwrap();
+    })
+    .unwrap();
 
     let val = get_scoped!(usize).unwrap();
     println!("{}", val);

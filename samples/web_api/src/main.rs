@@ -54,9 +54,9 @@ fn create_container() -> Container<'static> {
     let mut container = Container::new();
 
     // Scoped
-    register_scoped_trait!(container, Repository<TodoTask, Uuid>, InMemoryRepository::default());
-    register_scoped_trait!(container, Repository<AuditLog, Uuid>, InMemoryRepository::default());
-    container.add_deps::<AuditLogService>();
+    register_scoped_trait!(container, Repository<TodoTask, Uuid>, InMemoryRepository::default()).unwrap();
+    register_scoped_trait!(container, Repository<AuditLog, Uuid>, InMemoryRepository::default()).unwrap();
+    container.add_deps::<AuditLogService>().unwrap();
 
     // Singletons
 

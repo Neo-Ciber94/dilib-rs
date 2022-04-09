@@ -1,16 +1,16 @@
 use crate::{AuditLog, Repository};
 use dilib::{get_scoped_trait, Container, Injectable};
-use std::cell::RefCell;
+use futures_util::lock::Mutex;
 use uuid::Uuid;
 
 pub struct AuditLogService {
-    repository: RefCell<Box<dyn Repository<AuditLog, Uuid>>>,
+    repository: Mutex<Box<dyn Repository<AuditLog, Uuid> + Send + Sync>>,
 }
 
 #[allow(dead_code)]
 impl AuditLogService {
     pub async fn log(&self, data: AuditLog) {
-        self.repository.borrow_mut().add(data).await;
+        self.repository.lock().await.add(data).await;
     }
 }
 
@@ -19,7 +19,7 @@ impl Injectable for AuditLogService {
         let repository = get_scoped_trait!(container, Repository<AuditLog, Uuid>).unwrap();
 
         AuditLogService {
-            repository: RefCell::new(repository),
+            repository: Mutex::new(repository),
         }
     }
 }

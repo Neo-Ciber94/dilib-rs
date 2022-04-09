@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn call_injectable_test() {
         let mut container = Container::new();
-        container.add_scoped(|| String::from("hello"));
+        container.add_scoped(|| String::from("hello")).unwrap();
 
         let f = Scoped::from_injectable(|c| c.get_scoped::<String>().unwrap());
         assert!(f.is_injectable());
