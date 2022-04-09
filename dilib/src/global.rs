@@ -1,15 +1,67 @@
-#![allow(unused_macros)]
-
 use crate::Container;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicPtr, AtomicU8, Ordering};
 
-static CONTAINER: AtomicPtr<Container<'static>> = AtomicPtr::new(0 as *mut Container<'static>);
-static STATE: AtomicU8 = AtomicU8::new(UNINITIALIZED);
+static CONTAINER: GlobalContainer = GlobalContainer::new();
 
 const UNINITIALIZED: u8 = 0;
 const INITIALIZING: u8 = 1;
 const INITIALIZED: u8 = 2;
+
+struct GlobalContainer {
+    container: AtomicPtr<Container<'static>>,
+    state: AtomicU8,
+}
+
+impl GlobalContainer {
+    pub const fn new() -> Self {
+        Self {
+            container: AtomicPtr::new(std::ptr::null_mut()),
+            state: AtomicU8::new(UNINITIALIZED),
+        }
+    }
+
+    pub fn initialize<F>(&self, init: F) -> Result<(), InitContainerError>
+    where
+        F: FnOnce(&mut Container<'static>),
+    {
+        let state = &self.state;
+
+        match state.compare_exchange(
+            UNINITIALIZED,
+            INITIALIZING,
+            Ordering::SeqCst,
+            Ordering::SeqCst,
+        ) {
+            Ok(UNINITIALIZED) => {
+                let mut container = Container::new();
+                init(&mut container);
+                let ptr = Box::into_raw(Box::new(container));
+
+                self.container.store(ptr, Ordering::SeqCst);
+                state.store(INITIALIZED, Ordering::SeqCst);
+                Ok(())
+            }
+            Ok(INITIALIZING) => {
+                while state.load(Ordering::SeqCst) == INITIALIZING {
+                    std::hint::spin_loop();
+                }
+
+                Err(InitContainerError(InitContainerErrorKind::Initializing))
+            }
+            _ => Err(InitContainerError(
+                InitContainerErrorKind::AlreadyInitialized,
+            )),
+        }
+    }
+
+    pub fn get(&self) -> Option<&'static Container<'static>> {
+        match self.state.load(Ordering::SeqCst) {
+            INITIALIZED => unsafe { Some(&*self.container.load(Ordering::SeqCst)) },
+            _ => None
+        }
+    }
+}
 
 /// Container initialization errors.
 pub enum InitContainerErrorKind {
@@ -36,43 +88,18 @@ impl Debug for InitContainerError {
 }
 
 /// Initializes the global [`Container`].
+#[inline]
 pub fn init_container<F>(f: F) -> Result<(), InitContainerError>
 where
     F: FnOnce(&mut Container<'static>),
 {
-    match STATE.compare_exchange(
-        UNINITIALIZED,
-        INITIALIZING,
-        Ordering::SeqCst,
-        Ordering::SeqCst,
-    ) {
-        Ok(UNINITIALIZED) => {
-            let mut container = Container::new();
-            f(&mut container);
-            let ptr = Box::into_raw(Box::new(container));
-            CONTAINER.store(ptr, Ordering::SeqCst);
-            STATE.store(INITIALIZED, Ordering::SeqCst);
-            Ok(())
-        }
-        Ok(INITIALIZING) => {
-            while STATE.load(Ordering::SeqCst) == INITIALIZING {
-                std::hint::spin_loop();
-            }
-
-            Err(InitContainerError(InitContainerErrorKind::Initializing))
-        }
-        _ => Err(InitContainerError(
-            InitContainerErrorKind::AlreadyInitialized,
-        )),
-    }
+    CONTAINER.initialize(f)
 }
 
 /// Returns a reference to the global [`Container`] or `None` if is not initialized.
+#[inline]
 pub fn get_container() -> Option<&'static Container<'static>> {
-    match STATE.load(Ordering::SeqCst) {
-        INITIALIZED => unsafe { Some(&*CONTAINER.load(Ordering::SeqCst)) },
-        _ => None,
-    }
+    CONTAINER.get()
 }
 
 /// Returns a scoped value from the global [`Container`].
@@ -129,7 +156,7 @@ macro_rules! get_singleton {
 
 #[cfg(test)]
 mod tests {
-    use crate::global::{get_container, init_container};
+    use crate::global::{get_container, GlobalContainer, init_container};
     use crate::{register_scoped_trait, register_singleton_trait};
     use std::sync::Mutex;
 
@@ -154,12 +181,14 @@ mod tests {
     #[test]
     fn global_container_test() {
         init_container(|container| {
-            container.add_scoped(|| String::from("Hello World")).unwrap();
-            container.add_singleton(Mutex::new(5_i32)).unwrap();
-            register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
-            register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
-        })
-        .unwrap();
+                container
+                    .add_scoped(|| String::from("Hello World"))
+                    .unwrap();
+                container.add_singleton(Mutex::new(5_i32)).unwrap();
+                register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
+                register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
+            })
+            .unwrap();
 
         let container = get_container().unwrap();
 
@@ -187,5 +216,14 @@ mod tests {
 
         let r4 = get_singleton!(trait Greeter).unwrap();
         assert_eq!(r4.greet(), "Hello, world!");
+    }
+
+    #[test]
+    fn no_initialized_test() {
+        static GLOBAL_CONTAINER: GlobalContainer = GlobalContainer::new();
+        assert!(GLOBAL_CONTAINER.get().is_none());
+
+        GLOBAL_CONTAINER.initialize(|_| {}).unwrap();
+        assert!(GLOBAL_CONTAINER.get().is_some());
     }
 }
