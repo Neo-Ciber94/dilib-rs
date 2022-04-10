@@ -77,6 +77,7 @@ impl<'a> Provider<'a> {
     }
 
     #[inline]
+    #[cfg(feature = "lazy")]
     pub fn get_singleton_with<T>(&self, container: &Container) -> Option<Singleton<T>>
     where
         T: Send + Sync + 'static,

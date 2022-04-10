@@ -1,17 +1,27 @@
-use crate::late_init::LateInit;
-use crate::Container;
 use std::any::Any;
 use std::sync::Arc;
 
-type BoxedOnceFn = Box<dyn FnOnce(&Container) -> Arc<dyn Any + Send + Sync> + Send + Sync>;
+#[cfg(feature = "lazy")]
+type BoxedOnceFn = Box<dyn FnOnce(&crate::Container) -> Arc<dyn Any + Send + Sync> + Send + Sync>;
+
+#[cfg(feature = "lazy")]
+use {
+    late_init::LateInit,
+    crate::Container
+};
 
 /// Provides a singleton value.
 #[derive(Clone)]
 pub enum Shared<'a> {
     /// A single instance of the value.
     Instance(Arc<dyn Any + Send + Sync>),
+    #[cfg(feature = "lazy")]
     /// A factory function to create the single value.
     Lazy(Arc<LateInit<Arc<dyn Any + Send + Sync>, &'a Container<'a>, BoxedOnceFn>>),
+
+    #[doc(hidden)]
+    #[cfg(not(feature="lazy"))]
+    __NonExhaustive(&'a std::marker::PhantomData<()>),
 }
 
 impl<'a> Shared<'a> {
@@ -24,7 +34,8 @@ impl<'a> Shared<'a> {
     }
 
     /// Provides a new instance of the singleton from a factory.
-    pub fn new_factory<T, F>(f: F) -> Self
+    #[cfg(feature = "lazy")]
+    pub fn new_lazy<T, F>(f: F) -> Self
     where
         T: Send + Sync + 'static,
         F: FnOnce(&Container) -> T + Send + Sync + 'static,
@@ -39,7 +50,9 @@ impl<'a> Shared<'a> {
         Shared::Lazy(Arc::new(lazy))
     }
 
-    pub fn is_factory(&self) -> bool {
+    /// Returns `true` if the singleton is lazy.
+    #[cfg(feature = "lazy")]
+    pub fn is_lazy(&self) -> bool {
         matches!(self, Shared::Lazy(_))
     }
 
@@ -49,10 +62,14 @@ impl<'a> Shared<'a> {
     {
         match self {
             Shared::Instance(x) => x.clone().downcast().ok(),
+            #[cfg(feature = "lazy")]
             Shared::Lazy(_) => None,
+            #[cfg(not(feature = "lazy"))]
+            _ => None
         }
     }
 
+    #[cfg(feature = "lazy")]
     pub(crate) fn get_with<T>(&self, container: &'a Container<'a>) -> Option<Arc<T>>
     where
         T: Send + Sync + 'static,
@@ -66,10 +83,14 @@ impl<'a> Shared<'a> {
                     lazy.get_or_init(&container).clone().downcast().ok()
                 }
             }
+
+            #[cfg(not(feature = "lazy"))]
+            _ => None
         }
     }
 }
 
+#[cfg(feature = "lazy")]
 pub mod late_init {
     use once_cell::sync::OnceCell;
     use std::cell::Cell;

@@ -61,7 +61,7 @@ impl<'a> Container<'a> {
     where
         T: Send + Sync + 'static,
     {
-        self.add_singleton_internal(None, value)
+        self.add_singleton_internal::<T>(None, Shared::new(value))
     }
 
     /// Adds a singleton with a name.
@@ -74,7 +74,27 @@ impl<'a> Container<'a> {
     where
         T: Send + Sync + 'static,
     {
-        self.add_singleton_internal(Some(name), value)
+        self.add_singleton_internal::<T>(Some(name), Shared::new(value))
+    }
+
+    #[inline]
+    #[cfg(feature = "lazy")]
+    pub fn add_lazy_singleton<T, F>(&mut self, f: F) -> Result<(), Provider>
+    where
+        T: Send + Sync + 'static,
+        F: FnOnce(&Container) -> T + Send + Sync + 'static,
+    {
+        self.add_singleton_internal::<T>(None, Shared::new_lazy(f))
+    }
+
+    #[inline]
+    #[cfg(feature = "lazy")]
+    pub fn add_lazy_singleton_with_name<T, F>(&mut self, name: &str, f: F) -> Result<(), Provider>
+        where
+            T: Send + Sync + 'static,
+            F: FnOnce(&Container) -> T + Send + Sync + 'static,
+    {
+        self.add_singleton_internal::<T>(Some(name), Shared::new_lazy(f))
     }
 
     /// Adds a scoped `Injectable` that depends on others providers.
@@ -216,13 +236,12 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_singleton_internal<T>(&mut self, name: Option<&str>, value: T) -> Result<(), Provider>
+    fn add_singleton_internal<T>(&mut self, name: Option<&str>, shared: Shared<'a>) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
-        let singleton = Arc::new(value);
         let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Singleton(Shared::Instance(singleton)), name)
+        self.add_provider::<T>(Provider::Singleton(shared), name)
     }
 
     fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
@@ -242,9 +261,17 @@ impl<'a> Container<'a> {
                     }
                 }
                 Provider::Singleton(x) => {
-                    if x.is_factory() {
-                        x.get_with(self).map(Resolved::Singleton)
-                    } else {
+                    #[cfg(feature = "lazy")]
+                    {
+                        if x.is_lazy() {
+                            x.get_with(self).map(Resolved::Singleton)
+                        } else {
+                            x.get().map(Resolved::Singleton)
+                        }
+                    }
+
+                    #[cfg(not(feature="lazy"))]
+                    {
                         x.get().map(Resolved::Singleton)
                     }
                 }
@@ -339,6 +366,40 @@ mod tests {
 
         assert_eq!(*value, 42069_i32);
         assert!(container.get_singleton_with_name::<i32>("number").is_none());
+    }
+
+    #[test]
+    #[cfg(feature = "lazy")]
+    fn lazy_singleton_test() {
+        let mut container = Container::new();
+        container.add_lazy_singleton(|_| Mutex::new(128_isize)).unwrap();
+
+        let s1 = container.get_singleton::<Mutex<isize>>().unwrap();
+        assert_eq!(*s1.lock().unwrap(), 128_isize);
+
+        {
+            *s1.lock().unwrap() += 128;
+        }
+
+        let s2 = container.get_singleton::<Mutex<isize>>().unwrap();
+        assert_eq!(*s2.lock().unwrap(), 256_isize);
+    }
+
+    #[test]
+    #[cfg(feature = "lazy")]
+    fn lazy_singleton_with_name_test() {
+        let mut container = Container::new();
+        container.add_lazy_singleton_with_name("bits", |_| Mutex::new(128_isize)).unwrap();
+
+        let s1 = container.get_singleton_with_name::<Mutex<isize>>("bits").unwrap();
+        assert_eq!(*s1.lock().unwrap(), 128_isize);
+
+        {
+            *s1.lock().unwrap() += 128;
+        }
+
+        let s2 = container.get_singleton_with_name::<Mutex<isize>>("bits").unwrap();
+        assert_eq!(*s2.lock().unwrap(), 256_isize);
     }
 
     #[test]
