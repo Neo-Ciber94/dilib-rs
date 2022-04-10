@@ -3,6 +3,9 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{ItemFn, PathArguments};
 
+const INVALID_SIGNATURE: &str =
+    "invalid #[inject] signature, expected: #[inject(arg, name = \"value\")]";
+
 pub struct ResolvedFnArg {
     pub name: Option<String>,
     pub arg_name: String,
@@ -11,6 +14,7 @@ pub struct ResolvedFnArg {
 
 impl ResolvedFnArg {
     pub fn from_fn(item_fn: &ItemFn) -> Vec<ResolvedFnArg> {
+
         let sig = &item_fn.sig;
         let mut args = Vec::new();
 
@@ -28,13 +32,50 @@ impl ResolvedFnArg {
                 _ => panic!("expected named argument"),
             };
 
-            let name = get_inject_name(&arg_name, item_fn);
+            args.push(ResolvedFnArg { name: None, arg_name, ty });
+        }
 
-            args.push(ResolvedFnArg {
-                name,
-                arg_name,
-                ty,
-            });
+        let attrs = item_fn
+            .attrs
+            .iter()
+            .cloned()
+            .map(|att| MacroAttribute::new(att).ok())
+            .filter_map(|att| att)
+            .filter(|att| att.path() == "inject")
+            .collect::<Vec<_>>();
+
+        if attrs.len() > 1 {
+            for attr in attrs.iter() {
+                let arg = match attr.get(0) {
+                    Some(MetaItem::Path(path)) => path.clone(),
+                    _ => panic!("{}", INVALID_SIGNATURE),
+                };
+
+                match args.iter_mut().find(|x| x.arg_name == arg) {
+                    Some(resolved_arg) => {
+                        match attr.get(1) {
+                            Some(MetaItem::NameValue(x)) => {
+                                let name = &x.name;
+                                let value = &x.value;
+
+                                if name != "name" {
+                                    panic!("{}", INVALID_SIGNATURE);
+                                }
+
+                                resolved_arg.name = match value.to_string_literal() {
+                                    Some(value) => Some(value),
+                                    None => panic!("{}", INVALID_SIGNATURE),
+                                };
+                            },
+                            _ => panic!("{}", INVALID_SIGNATURE)
+                        }
+
+                    },
+                    None => {
+                        panic!("unable to find '{0}' for '#[inject({0}, ...)]'", arg);
+                    }
+                }
+            }
         }
 
         args
@@ -49,11 +90,11 @@ impl ToTokens for ResolvedFnArg {
             (true, Some(name)) => {
                 let inner = get_singleton_inner_type(&ty);
                 quote! { get_singleton_with_name::<#inner>(#name) }
-            },
+            }
             (true, None) => {
                 let inner = get_singleton_inner_type(&ty);
                 quote! { get_singleton::<#inner>() }
-            },
+            }
             (false, Some(name)) => quote! { get_scoped_with_name::<#ty>(#name) },
             (false, None) => quote! { get_scoped::<#ty>() },
         };
@@ -75,7 +116,7 @@ impl ToTokens for ResolvedFnArg {
 
 fn get_singleton_inner_type(ty: &syn::Type) -> Box<syn::Type> {
     match ty {
-        syn::Type::Path(syn::TypePath { path, ..}) => {
+        syn::Type::Path(syn::TypePath { path, .. }) => {
             let last = path.segments.last().expect("expected generic type");
             match &last.arguments {
                 PathArguments::AngleBracketed(angle_bracketed) => {
@@ -92,8 +133,8 @@ fn get_singleton_inner_type(ty: &syn::Type) -> Box<syn::Type> {
                 }
                 _ => panic!("expected generic type"),
             }
-        },
-        _ => panic!("expected 'Singleton<T>' or 'Ar<T>' type")
+        }
+        _ => panic!("expected 'Singleton<T>' or 'Ar<T>' type"),
     }
 }
 
@@ -120,7 +161,7 @@ fn is_singleton(ty: &syn::Type) -> bool {
     }
 }
 
-#[cfg(feature="when macro attribute in fn args get stabilized")]
+#[cfg(feature = "when macro attribute in fn args get stabilized")]
 fn get_inject_name(attr: &[Attribute]) -> Option<String> {
     let attributes = attr
         .iter()
@@ -128,18 +169,18 @@ fn get_inject_name(attr: &[Attribute]) -> Option<String> {
         .filter_map(|attr| attr)
         .collect::<Vec<_>>();
 
-    let inject_attr = attributes
-        .into_iter()
-        .find(|attr| attr.path() == "inject");
+    let inject_attr = attributes.into_iter().find(|attr| attr.path() == "inject");
 
     match inject_attr {
         Some(attr) => {
             let name_value_attr = attr.into_name_values().ok()?;
-            let mut map = name_value_attr.into_iter()
-                .collect::<HashMap<String, _>>();
+            let mut map = name_value_attr.into_iter().collect::<HashMap<String, _>>();
 
-            let name = map.remove_entry("name")
-                .map(|(_, value)| value.to_string_literal().expect("expected #[inject] 'name' to be a string"));
+            let name = map.remove_entry("name").map(|(_, value)| {
+                value
+                    .to_string_literal()
+                    .expect("expected #[inject] 'name' to be a string")
+            });
 
             // The rest are unknown
             if let Some((key, _)) = map.iter().next() {
@@ -152,59 +193,12 @@ fn get_inject_name(attr: &[Attribute]) -> Option<String> {
     }
 }
 
-fn get_inject_name(arg_name: &str, item_fn: &ItemFn) -> Option<String> {
-    const INVALID_SIGNATURE : &str = "invalid #[inject] signature, expected: #[inject(arg, name = \"value\")]";
-
-    let attrs = item_fn.attrs.iter()
-        .cloned()
-        .map(|att| MacroAttribute::new(att).ok())
-        .filter_map(|att| att)
-        .filter(|att| att.path() == "inject")
-        .collect::<Vec<_>>();
-
-    if attrs.is_empty() {
-        return None;
-    }
-
-    let mut inject_name: Option<String> = None;
-
-    for attr in attrs {
-        let arg = match attr.get(0) {
-            Some(MetaItem::Path(path)) => { path.clone()}
-            _ => panic!("{}", INVALID_SIGNATURE),
-        };
-
-        if arg != arg_name {
-            continue;
-        }
-
-        inject_name = match attr.get(1) {
-            Some(MetaItem::NameValue(name_value)) => {
-                let name = &name_value.name;
-                let value = &name_value.value;
-
-                if name != "name" {
-                    panic!("{}", INVALID_SIGNATURE);
-                }
-
-                match value.to_string_literal() {
-                    Some(value) => Some(value),
-                    None => panic!("{}", INVALID_SIGNATURE),
-                }
-            }
-            _ => panic!("{}", INVALID_SIGNATURE),
-        };
-    }
-
-    if inject_name.is_none() {
-        panic!("unable to find '{0}' for '#[inject({0}, ...)]'", arg_name);
-    }
-
-    inject_name
-}
-
-fn format_tokens<T>(tokens: &T) -> String where T: ToTokens {
-    tokens.to_token_stream()
+fn format_tokens<T>(tokens: &T) -> String
+where
+    T: ToTokens,
+{
+    tokens
+        .to_token_stream()
         .into_iter()
         .flat_map(|t| t.to_string().chars().collect::<Vec<char>>())
         .filter(|c| !c.is_whitespace())

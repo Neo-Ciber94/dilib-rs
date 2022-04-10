@@ -110,8 +110,6 @@ pub struct InjectProvider {
     pub provider: Provider<'static>,
     // The key used to inject the provider
     pub key: InjectionKey<'static>,
-    // The evaluation order
-    pub order: Option<usize>,
 }
 
 // List of providers to be added to the global container
@@ -131,13 +129,7 @@ where
             #[cfg(feature = "unstable_provide")]
             {
                 let mut lock = PROVIDERS.lock().unwrap();
-                let mut providers = lock.take().unwrap();
-                providers.sort_by(|a, b| {
-                    let a_order = a.order.unwrap_or(usize::MAX);
-                    let b_order = b.order.unwrap_or(usize::MAX);
-                    a_order.cmp(&b_order)
-                });
-
+                let providers = lock.take().unwrap();
                 let container = CONTAINER.get_mut().unwrap();
 
                 for InjectProvider { key, provider, .. } in providers {

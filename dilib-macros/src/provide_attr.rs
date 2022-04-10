@@ -11,7 +11,6 @@ use syn::{AttrStyle, AttributeArgs, ItemFn, ItemStruct, ReturnType};
 #[derive(Debug)]
 pub struct ProvideAttribute {
     name: Option<String>,
-    order: Option<usize>,
     scope: Scope,
     target: Target,
 }
@@ -34,12 +33,6 @@ impl ProvideAttribute {
                 .expect("#[provide] 'name' must be a string literal")
         });
 
-        let order = map.remove_entry("order").map(|(_, value)| {
-            value
-                .to_integer_literal::<usize>()
-                .expect("#[provide] 'order' must be a usize literal")
-        });
-
         let scope = map
             .remove_entry("scope")
             .map(|(_, value)| {
@@ -57,7 +50,6 @@ impl ProvideAttribute {
 
         ProvideAttribute {
             name,
-            order,
             scope,
             target,
         }
@@ -66,15 +58,10 @@ impl ProvideAttribute {
     pub fn expand(self) -> proc_macro2::TokenStream {
         let name = self.name;
         let scope = self.scope;
-        let order = self.order;
         let target = self.target;
         let ty = target.target_type();
 
         let key = get_injection_key(&ty, name.as_deref());
-        let order = match order {
-            Some(n) => quote! { Some(#n) },
-            None => quote! { None },
-        };
 
         // We need a return type for the function
         if let Target::Fn(item_fn) = &target {
@@ -110,7 +97,6 @@ impl ProvideAttribute {
             providers.push(dilib::global::InjectProvider {
                 key: #key,
                 provider: #provider,
-                order: #order,
             });
         };
 
@@ -220,16 +206,16 @@ fn generate_fn_name(ty: &Box<syn::Type>, target: &Target) -> syn::Ident {
         Target::Struct(item_struct) => item_struct.ident.clone(),
     };
 
-    let type_name = ty.to_token_stream()
+    let type_name = ty
+        .to_token_stream()
         .into_iter()
         .flat_map(|t| t.to_string().chars().collect::<Vec<char>>())
         .filter(|c| c.is_whitespace())
-        .map(|c| {
-            match c{
-                'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => c,
-                _ => '_',
-            }
-        }).collect::<String>();
+        .map(|c| match c {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => c,
+            _ => '_',
+        })
+        .collect::<String>();
 
     let uuid = uuid::Uuid::new_v4().to_simple().to_string();
     let name = format!("{}_{}_{}", name, type_name, uuid);

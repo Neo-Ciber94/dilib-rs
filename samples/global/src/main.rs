@@ -1,74 +1,45 @@
-use dilib::global::{init_container};
 use dilib::{
-    get_scoped, get_singleton, Container, Injectable,
-    proc_macros::{provide, inject}
+    get_scoped, get_singleton, global::init_container, macros::provide, Injectable, Singleton,
 };
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
+use dilib::global::get_container;
 
 #[provide]
-fn hello() -> String {
-    "Hello".to_string()
+fn message() -> String {
+    "Current count".to_string()
 }
 
-#[provide(scope="singleton", name="count", order=2)]
-#[cold] // You may require to use #[cold] because the function will only be called once
+#[provide(scope = "singleton", name = "count")]
 fn counter() -> Mutex<usize> {
     Mutex::new(0)
 }
 
-#[provide(order=1000)]
+#[provide]
+#[derive(Injectable)]
 struct PrintCount {
-    counter: Arc<Mutex<usize>>,
-    greet: String,
+    #[inject(name = "count")]
+    counter: Singleton<Mutex<usize>>,
+    msg: String,
 }
 
 impl PrintCount {
-    fn print(&self) {
-        let counter = self.counter.lock().expect("unable to get counter lock");
-        let val = *counter;
-        println!("{} {}", self.greet, val);
+    fn print(&self) -> String {
+        let count = self.counter.lock().unwrap();
+        format!("{} {}", self.msg, count)
     }
-}
-
-impl Injectable for PrintCount {
-    fn resolve(container: &Container) -> Self {
-        let counter = container
-            .get_singleton_with_name::<Mutex<usize>>("count")
-            .expect("unable to get counter");
-
-        let greet = container
-            .get_scoped::<String>()
-            .expect("unable to get greet");
-
-        PrintCount { counter, greet }
-    }
-}
-
-
-#[provide(name="hola")]
-#[inject(counter, name="count")]
-fn say_hola(counter: Arc<Mutex<usize>>) -> String {
-    let lock = counter.lock().expect("unable to get counter lock");
-    let val = *lock;
-    format!("Hola {}", val)
 }
 
 fn main() {
-    init_container(|_| {})
-    .unwrap();
+    // Required to register the providers
+    init_container(|_| {}).unwrap();
 
-    let hello = get_scoped!(String).expect("unable to get hello");
-    let count = get_singleton!(Mutex<usize>, "count").expect("unable to get count");
+    println!("{}", get_container().unwrap().len());
 
-    {
-        let mut lock = count.lock().expect("unable to get counter lock");
-        *lock += 5;
-    }
+    let counter = get_singleton!(Mutex<usize>, "count").expect("Could not get counter");
+    *counter.lock().unwrap() += 5;
 
-    let hola = get_scoped!(String, "hola").expect("unable to get hola");
-    let print_count = get_scoped!(PrintCount).expect("unable to get print count");
+    let print_count = get_scoped!(PrintCount).expect("Could not get print count");
+    assert_eq!(print_count.print(), "Current count 5");
 
-    println!("{}", hello);
-    print_count.print();
-    println!("{}", hola);
+    println!("{}", print_count.print());
 }
