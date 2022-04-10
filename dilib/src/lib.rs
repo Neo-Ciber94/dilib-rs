@@ -63,8 +63,8 @@
 //! assert_eq!(*c2.val.lock().unwrap(), 12);
 //! ```
 
-mod macros;
-pub use macros::*;
+mod lib_macros;
+pub use lib_macros::*;
 
 mod injectable;
 pub use injectable::*;
@@ -93,10 +93,12 @@ extern crate dilib_derive;
 #[cfg(feature = "derive")]
 pub use dilib_derive::*;
 
+/// A global instance of `Container`.
 #[cfg(feature = "global")]
 pub mod global;
 
+/// procedural macros of `dilib`.
 #[cfg(feature = "unstable_provide")]
-pub mod proc_macros {
+pub mod macros {
     pub use dilib_macros::*;
 }

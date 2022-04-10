@@ -13,14 +13,14 @@ pub enum ProviderKind {
 
 /// Provides a [`Container`] value.
 #[derive(Clone)]
-pub enum Provider {
+pub enum Provider<'a> {
     /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
     /// A provider that returns the same value each time is required.
-    Singleton(Shared),
+    Singleton(Shared<'a>),
 }
 
-impl Provider {
+impl<'a> Provider<'a> {
     /// Returns `true` if the provider is scoped.
     pub fn is_scoped(&self) -> bool {
         matches!(self, Provider::Scoped(_))
@@ -88,7 +88,7 @@ impl Provider {
     }
 }
 
-impl Debug for Provider {
+impl Debug for Provider<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Provider::Scoped(scoped) => write!(f, "Provider::Scoped({:?})", scoped),

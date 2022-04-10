@@ -12,7 +12,7 @@ pub type Singleton<T> = Arc<T>;
 /// Represents a store to register and retrieve objects.
 #[derive(Default, Clone)]
 pub struct Container<'a> {
-    providers: HashMap<InjectionKey<'a>, Provider>,
+    providers: HashMap<InjectionKey<'a>, Provider<'a>>,
 }
 
 impl<'a> Container<'a> {
@@ -257,7 +257,7 @@ impl<'a> Container<'a> {
     #[inline]
     pub(crate) fn add_provider<T: 'static>(
         &mut self,
-        provider: Provider,
+        provider: Provider<'a>,
         name: Option<String>,
     ) -> Result<(), Provider> {
         let type_id = TypeId::of::<T>();
@@ -268,7 +268,7 @@ impl<'a> Container<'a> {
     pub(crate) fn add_provider_internal(
         &mut self,
         key: InjectionKey<'a>,
-        provider: Provider,
+        provider: Provider<'a>,
     ) -> Result<(), Provider> {
         match self.providers.insert(key, provider) {
             Some(x) => Err(x),

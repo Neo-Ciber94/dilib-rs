@@ -107,7 +107,7 @@ impl Debug for InitContainerError {
 #[cfg(feature = "unstable_provide")]
 pub struct InjectProvider {
     // The actual provider
-    pub provider: Provider,
+    pub provider: Provider<'static>,
     // The key used to inject the provider
     pub key: InjectionKey<'static>,
     // The evaluation order
