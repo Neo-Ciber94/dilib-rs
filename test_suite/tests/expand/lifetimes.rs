@@ -1,6 +1,6 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct StructWithLifeTimes<'a, 'b> {
     a: &'a String,
     b: Singleton<&'a usize>,

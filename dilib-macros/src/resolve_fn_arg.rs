@@ -14,7 +14,6 @@ pub struct ResolvedFnArg {
 
 impl ResolvedFnArg {
     pub fn from_fn(item_fn: &ItemFn) -> Vec<ResolvedFnArg> {
-
         let sig = &item_fn.sig;
         let mut args = Vec::new();
 
@@ -32,7 +31,11 @@ impl ResolvedFnArg {
                 _ => panic!("expected named argument"),
             };
 
-            args.push(ResolvedFnArg { name: None, arg_name, ty });
+            args.push(ResolvedFnArg {
+                name: None,
+                arg_name,
+                ty,
+            });
         }
 
         let attrs = item_fn
@@ -52,24 +55,21 @@ impl ResolvedFnArg {
                 };
 
                 match args.iter_mut().find(|x| x.arg_name == arg) {
-                    Some(resolved_arg) => {
-                        match attr.get(1) {
-                            Some(MetaItem::NameValue(x)) => {
-                                let name = &x.name;
-                                let value = &x.value;
+                    Some(resolved_arg) => match attr.get(1) {
+                        Some(MetaItem::NameValue(x)) => {
+                            let name = &x.name;
+                            let value = &x.value;
 
-                                if name != "name" {
-                                    panic!("{}", INVALID_SIGNATURE);
-                                }
+                            if name != "name" {
+                                panic!("{}", INVALID_SIGNATURE);
+                            }
 
-                                resolved_arg.name = match value.to_string_literal() {
-                                    Some(value) => Some(value),
-                                    None => panic!("{}", INVALID_SIGNATURE),
-                                };
-                            },
-                            _ => panic!("{}", INVALID_SIGNATURE)
+                            resolved_arg.name = match value.to_string_literal() {
+                                Some(value) => Some(value),
+                                None => panic!("{}", INVALID_SIGNATURE),
+                            };
                         }
-
+                        _ => panic!("{}", INVALID_SIGNATURE),
                     },
                     None => {
                         panic!("unable to find '{0}' for '#[inject({0}, ...)]'", arg);

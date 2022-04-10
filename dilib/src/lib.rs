@@ -44,7 +44,7 @@
 //! use dilib::*;
 //! use std::sync::Mutex;
 //!
-//! #[derive(Injectable)]
+//! #[derive(Inject)]
 //! struct Counter {
 //!     #[inject(default="Counter")]
 //!     label: String,
@@ -87,11 +87,17 @@ pub use shared::*;
 mod resolved;
 pub use resolved::*;
 
-#[cfg(feature = "derive")]
-extern crate dilib_derive;
+//mod error;
+//pub use error::*;
 
 #[cfg(feature = "derive")]
-pub use dilib_derive::*;
+mod derive {
+    extern crate dilib_derive;
+    pub use dilib_derive::*;
+}
+
+#[cfg(feature = "derive")]
+pub use derive::*;
 
 /// A global instance of `Container`.
 #[cfg(feature = "global")]
@@ -102,3 +108,6 @@ pub mod global;
 pub mod macros {
     pub use dilib_macros::*;
 }
+
+#[cfg(feature = "unstable_provide")]
+pub use macros::*;

@@ -5,10 +5,7 @@ use std::sync::Arc;
 type BoxedOnceFn = Box<dyn FnOnce(&crate::Container) -> Arc<dyn Any + Send + Sync> + Send + Sync>;
 
 #[cfg(feature = "lazy")]
-use {
-    late_init::LateInit,
-    crate::Container
-};
+use {crate::Container, late_init::LateInit};
 
 /// Provides a singleton value.
 #[derive(Clone)]
@@ -20,7 +17,7 @@ pub enum Shared<'a> {
     Lazy(Arc<LateInit<Arc<dyn Any + Send + Sync>, &'a Container<'a>, BoxedOnceFn>>),
 
     #[doc(hidden)]
-    #[cfg(not(feature="lazy"))]
+    #[cfg(not(feature = "lazy"))]
     __NonExhaustive(&'a std::marker::PhantomData<()>),
 }
 
@@ -65,7 +62,7 @@ impl<'a> Shared<'a> {
             #[cfg(feature = "lazy")]
             Shared::Lazy(_) => None,
             #[cfg(not(feature = "lazy"))]
-            _ => None
+            _ => None,
         }
     }
 
@@ -85,7 +82,7 @@ impl<'a> Shared<'a> {
             }
 
             #[cfg(not(feature = "lazy"))]
-            _ => None
+            _ => None,
         }
     }
 }

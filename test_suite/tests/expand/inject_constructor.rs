@@ -1,6 +1,6 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 #[inject(constructor="new(a, b, c)")]
 struct StructInjectConstructor {
     a: String,

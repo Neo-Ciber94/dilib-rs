@@ -2,10 +2,12 @@
 name = "test_suite"
 version = "0.1.0"
 authors = ["Freddy L."]
-edition = "2021"
+edition = "2018"
 publish = false
 
 [dependencies]
-macrotest = "1.0.8"
-trybuild = "1.0.43"
 dilib = { path = "../dilib", features=["derive"] }
+
+[dev-dependencies]
+macrotest = "1.0.8"
+trybuild = { version = "1.0.59", features = ["diff"] }

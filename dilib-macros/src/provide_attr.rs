@@ -87,7 +87,7 @@ impl ProvideAttribute {
                     }
                 }
             },
-            Target::Struct(item_struct) => get_injectable_provider(&item_struct),
+            Target::Struct(item_struct) => get_inject_provider(&item_struct),
         };
 
         let add_provider = quote! {
@@ -150,7 +150,7 @@ fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &Box<syn::Type>) -> TokenS
 
     quote! {
         dilib::Provider::Scoped(
-            dilib::Scoped::from_injectable(|container: &dilib::Container| -> #ty {
+            dilib::Scoped::from_inject(|container: &dilib::Container| -> #ty {
                 #(#resolved_args)*
                 #fn_name(#(#arg_names),*)
             })
@@ -187,13 +187,13 @@ fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &Box<syn::Type>) -> Tok
     }
 }
 
-fn get_injectable_provider(item_struct: &ItemStruct) -> TokenStream {
+fn get_inject_provider(item_struct: &ItemStruct) -> TokenStream {
     let struct_name = item_struct.ident.clone();
 
     quote! {
         dilib::Provider::Scoped(
-            dilib::Scoped::from_injectable(|container: &dilib::Container| -> #struct_name {
-                    <#struct_name as dilib::Injectable> :: resolve(container)
+            dilib::Scoped::from_inject(|container: &dilib::Container| -> #struct_name {
+                    <#struct_name as dilib::Inject> :: inject(container)
                 }
             )
         )

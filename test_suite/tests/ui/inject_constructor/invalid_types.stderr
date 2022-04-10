@@ -1,19 +1,17 @@
-error[E0432]: unresolved import `dilib`
- --> $DIR/invalid_types.rs:1:5
+error[E0308]: mismatched types
+ --> tests/ui/inject_constructor/invalid_types.rs:3:10
   |
-1 | use dilib::Injectable;
-  |     ^^^^^ use of undeclared crate or module `dilib`
+3 | #[derive(Inject)]
+  |          ^^^^^^ expected `i32`, found struct `String`
+  |
+  = note: this error originates in the derive macro `Inject` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: cannot determine resolution for the derive macro `Injectable`
- --> $DIR/invalid_types.rs:3:10
+error[E0308]: mismatched types
+ --> tests/ui/inject_constructor/invalid_types.rs:3:10
   |
-3 | #[derive(Injectable)]
-  |          ^^^^^^^^^^
+3 | #[derive(Inject)]
+  |          ^^^^^^- help: try using a conversion method: `.to_string()`
+  |          |
+  |          expected struct `String`, found `i32`
   |
-  = note: import resolution is stuck, try simplifying macro imports
-
-error: cannot find attribute `inject` in this scope
- --> $DIR/invalid_types.rs:4:3
-  |
-4 | #[inject(constructor = "new(a, b)")]
-  |   ^^^^^^
+  = note: this error originates in the derive macro `Inject` (in Nightly builds, run with -Z macro-backtrace for more info)

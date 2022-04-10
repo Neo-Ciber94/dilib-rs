@@ -1,9 +1,9 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 use std::sync::{Arc, Mutex};
 
 type UsizeSingleton = Arc<Mutex<usize>>;
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct StructInjectScope {
     #[inject(scope="singleton")]
     a: UsizeSingleton,

@@ -1,7 +1,7 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 use std::sync::{Arc, Mutex};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct StructSingleton {
     a: Singleton<usize>,
     b: Arc<Mutex<usize>>

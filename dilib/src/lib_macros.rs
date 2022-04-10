@@ -287,7 +287,8 @@ mod tests {
     fn compile_get_resolved_trait() {
         let mut container = Container::new();
         register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10)).unwrap();
-        register_singleton_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false)).unwrap();
+        register_singleton_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false))
+            .unwrap();
 
         let _r1 = get_resolved_trait!(container, Gen1<i32>).unwrap();
         let _r2 = get_resolved_trait!(container, Gen2<i32, bool>).unwrap();

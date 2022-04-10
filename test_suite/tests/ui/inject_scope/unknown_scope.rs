@@ -1,6 +1,6 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct MyStruct {
     #[inject(scope="unique")]
     a: Singleton<usize>,

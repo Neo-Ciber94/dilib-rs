@@ -1,6 +1,6 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct DefaultTyParam<A = usize, B = String, C = bool> {
     a: A,
     b: Singleton<B>,

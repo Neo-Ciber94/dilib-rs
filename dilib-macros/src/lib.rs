@@ -17,7 +17,7 @@ use target::Target;
 /// # Example
 ///
 /// ```rust
-/// use dilib::{macros::provide, Injectable, Singleton, global::init_container, get_singleton, get_scoped};
+/// use dilib::{macros::provide, Inject, Singleton, global::init_container, get_singleton, get_scoped};
 /// use std::sync::Mutex;
 ///
 /// #[provide]
@@ -30,7 +30,7 @@ use target::Target;
 ///   Mutex::new(0)
 /// }
 ///
-/// #[derive(Injectable)]
+/// #[derive(Inject)]
 /// #[provide] // provide should resolve after the derive
 /// struct PrintCount {
 ///     #[inject(name="count")]

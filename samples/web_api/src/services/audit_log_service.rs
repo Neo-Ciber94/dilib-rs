@@ -1,5 +1,5 @@
 use crate::{AuditLog, Repository};
-use dilib::{get_scoped_trait, Container, Injectable};
+use dilib::{get_scoped_trait, Container, Inject};
 use futures_util::lock::Mutex;
 use uuid::Uuid;
 
@@ -14,8 +14,8 @@ impl AuditLogService {
     }
 }
 
-impl Injectable for AuditLogService {
-    fn resolve(container: &Container) -> Self {
+impl Inject for AuditLogService {
+    fn inject(container: &Container) -> Self {
         let repository = get_scoped_trait!(container, Repository<AuditLog, Uuid>).unwrap();
 
         AuditLogService {

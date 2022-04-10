@@ -1,4 +1,4 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct TupleStruct(Singleton<usize>, String, bool);

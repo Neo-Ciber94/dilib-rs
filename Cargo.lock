@@ -425,7 +425,7 @@ name = "dilib"
 version = "0.2.0-alpha"
 dependencies = [
  "ctor",
- "dilib-derive 0.1.0-alpha (registry+https://github.com/rust-lang/crates.io-index)",
+ "dilib-derive",
  "dilib-macros",
  "once_cell",
 ]
@@ -435,18 +435,6 @@ name = "dilib-derive"
 version = "0.1.0-alpha"
 dependencies = [
  "dilib",
- "mattro",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "dilib-derive"
-version = "0.1.0-alpha"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdb78d040283226bd36b12d576c2778512306f763d3060989e8459f1ce9d6b8c"
-dependencies = [
  "mattro",
  "proc-macro2",
  "quote",
@@ -466,6 +454,12 @@ dependencies = [
  "syn",
  "uuid",
 ]
+
+[[package]]
+name = "dissimilar"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31ad93652f40969dead8d4bf897a41e9462095152eb21c56e5830537e41179dd"
 
 [[package]]
 name = "encoding_rs"
@@ -1354,13 +1348,15 @@ dependencies = [
 
 [[package]]
 name = "trybuild"
-version = "1.0.43"
+version = "1.0.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c02c413315329fc96167f922b46fd0caa3a43f4697b7a7896b183c7142635832"
+checksum = "606ab3fe0065741fdbb51f64bcb6ba76f13fad49f1723030041826c631782764"
 dependencies = [
+ "dissimilar",
  "glob",
- "lazy_static",
+ "once_cell",
  "serde",
+ "serde_derive",
  "serde_json",
  "termcolor",
  "toml",

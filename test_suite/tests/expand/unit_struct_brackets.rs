@@ -1,4 +1,4 @@
-use dilib::Injectable;
+use dilib::Inject;
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct UnitStructBrackets{}

@@ -1,19 +1,7 @@
-error[E0432]: unresolved import `dilib`
- --> $DIR/unknown_scope.rs:1:5
+error: proc-macro derive panicked
+ --> tests/ui/inject_scope/unknown_scope.rs:3:10
   |
-1 | use dilib::{Singleton, Injectable};
-  |     ^^^^^ use of undeclared crate or module `dilib`
-
-error: cannot determine resolution for the derive macro `Injectable`
- --> $DIR/unknown_scope.rs:3:10
+3 | #[derive(Inject)]
+  |          ^^^^^^
   |
-3 | #[derive(Injectable)]
-  |          ^^^^^^^^^^
-  |
-  = note: import resolution is stuck, try simplifying macro imports
-
-error: cannot find attribute `inject` in this scope
- --> $DIR/unknown_scope.rs:5:7
-  |
-5 |     #[inject(scope="unique")]
-  |       ^^^^^^
+  = help: message: invalid scope value: `unique`, expected "singleton" or "scoped"

@@ -1,6 +1,6 @@
-use dilib::Injectable;
+use dilib::Inject;
 
-#[derive(Injectable)]
+#[derive(Inject)]
 #[inject(constructor="new(x, y)")]
 struct MyStruct {
     a: String,

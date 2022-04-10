@@ -1,6 +1,6 @@
-use dilib::{Singleton, Injectable};
+use dilib::{Singleton, Inject};
 
-#[derive(Injectable)]
+#[derive(Inject)]
 struct StructWithWhere<A, B, C> where A: Clone, B: Default, C: Copy {
     a: A,
     b: Singleton<B>,

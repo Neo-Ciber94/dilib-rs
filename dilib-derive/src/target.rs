@@ -25,7 +25,7 @@ pub enum StructKind {
 }
 
 #[derive(Debug)]
-pub struct DeriveInjectable {
+pub struct DeriveInject {
     target_type: Ident,
     container: Ident,
     constructor: Option<TargetConstructor>,
@@ -34,7 +34,7 @@ pub struct DeriveInjectable {
     kind: StructKind,
 }
 
-impl DeriveInjectable {
+impl DeriveInject {
     pub fn new(
         target_type: Ident,
         container: Ident,
@@ -43,7 +43,7 @@ impl DeriveInjectable {
         generics: Generics,
         kind: StructKind,
     ) -> Self {
-        DeriveInjectable {
+        DeriveInject {
             target_type,
             container,
             constructor,
@@ -53,7 +53,7 @@ impl DeriveInjectable {
         }
     }
 
-    pub fn emit(&self) -> proc_macro2::TokenStream {
+    pub fn expand(&self) -> proc_macro2::TokenStream {
         let target_type = &self.target_type;
         let container = &self.container;
         let deps = self.deps.as_slice();
@@ -89,10 +89,10 @@ impl DeriveInjectable {
         };
 
         quote! {
-            impl #generic_params dilib::Injectable for #target_type #generic_types #where_clause {
+            impl #generic_params dilib::Inject for #target_type #generic_types #where_clause {
                 #[allow(unused)]
                 #[allow(dead_code)]
-                fn resolve(#container : &dilib::Container) -> Self {
+                fn inject(#container : &dilib::Container) -> Self {
                     #(#deps)*
                     #body
                 }
@@ -154,10 +154,10 @@ impl DeriveInjectable {
     }
 }
 
-pub fn parse_derive_injectable(input: DeriveInput) -> DeriveInjectable {
+pub fn parse_derive_inject(input: DeriveInput) -> DeriveInject {
     match &input.data {
-        Data::Enum(_) => panic!("Enum types cannot implement `Injectable` with #[derive]"),
-        Data::Union(_) => panic!("Union types cannot implement `Injectable` with #[derive]"),
+        Data::Enum(_) => panic!("Enum types cannot implement `Inject` with #[derive]"),
+        Data::Union(_) => panic!("Union types cannot implement `Inject` with #[derive]"),
         Data::Struct(data_struct) => {
             let target_type = input.ident.clone();
             let constructor = get_target_constructor(&input);
@@ -166,7 +166,7 @@ pub fn parse_derive_injectable(input: DeriveInput) -> DeriveInjectable {
             let generics = input.generics.clone();
             let kind = get_struct_kind(data_struct);
 
-            DeriveInjectable::new(target_type, container, constructor, deps, generics, kind)
+            DeriveInject::new(target_type, container, constructor, deps, generics, kind)
         }
     }
 }

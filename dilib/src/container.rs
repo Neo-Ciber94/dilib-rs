@@ -1,6 +1,6 @@
 use crate::provider::Provider;
 use crate::scoped::Scoped;
-use crate::{Injectable, InjectionKey, Resolved, Shared};
+use crate::{Inject, InjectionKey, Resolved, Shared};
 use std::any::TypeId;
 use std::collections::hash_map::{Iter, Values};
 use std::collections::HashMap;
@@ -90,14 +90,14 @@ impl<'a> Container<'a> {
     #[inline]
     #[cfg(feature = "lazy")]
     pub fn add_lazy_singleton_with_name<T, F>(&mut self, name: &str, f: F) -> Result<(), Provider>
-        where
-            T: Send + Sync + 'static,
-            F: FnOnce(&Container) -> T + Send + Sync + 'static,
+    where
+        T: Send + Sync + 'static,
+        F: FnOnce(&Container) -> T + Send + Sync + 'static,
     {
         self.add_singleton_internal::<T>(Some(name), Shared::new_lazy(f))
     }
 
-    /// Adds a scoped `Injectable` that depends on others providers.
+    /// Adds a scoped `Inject` that depends on others providers.
     ///
     /// # Returns
     /// `Ok(())` if the provider was added, or `Err(Provider)` if
@@ -105,12 +105,12 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_deps<T>(&mut self) -> Result<(), Provider>
     where
-        T: Injectable + Send + Sync + 'static,
+        T: Inject + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(Scoped::from_injectable(T::resolve), None)
+        self.add_scoped_internal::<T>(Scoped::from_inject(T::inject), None)
     }
 
-    /// Adds a scoped named `Injectable` that depends on others providers.
+    /// Adds a scoped named `Inject` that depends on others providers.
     ///
     /// # Returns
     /// `Ok(())` if the provider was added, or `Err(Provider)` if
@@ -118,9 +118,9 @@ impl<'a> Container<'a> {
     #[inline]
     pub fn add_deps_with_name<T>(&mut self, name: &str) -> Result<(), Provider>
     where
-        T: Injectable + Send + Sync + 'static,
+        T: Inject + Send + Sync + 'static,
     {
-        self.add_scoped_internal::<T>(Scoped::from_injectable(T::resolve), Some(name))
+        self.add_scoped_internal::<T>(Scoped::from_inject(T::inject), Some(name))
     }
 
     /// Returns a value registered for the given type or `None`
@@ -236,7 +236,11 @@ impl<'a> Container<'a> {
         self.add_provider::<T>(Provider::Scoped(scoped), name)
     }
 
-    fn add_singleton_internal<T>(&mut self, name: Option<&str>, shared: Shared<'a>) -> Result<(), Provider>
+    fn add_singleton_internal<T>(
+        &mut self,
+        name: Option<&str>,
+        shared: Shared<'a>,
+    ) -> Result<(), Provider>
     where
         T: Send + Sync + 'static,
     {
@@ -257,7 +261,7 @@ impl<'a> Container<'a> {
                     if x.is_factory() {
                         x.call_factory().map(Resolved::Scoped)
                     } else {
-                        x.call_injectable(self).map(Resolved::Scoped)
+                        x.call_inject(self).map(Resolved::Scoped)
                     }
                 }
                 Provider::Singleton(x) => {
@@ -270,7 +274,7 @@ impl<'a> Container<'a> {
                         }
                     }
 
-                    #[cfg(not(feature="lazy"))]
+                    #[cfg(not(feature = "lazy"))]
                     {
                         x.get().map(Resolved::Singleton)
                     }
@@ -372,7 +376,9 @@ mod tests {
     #[cfg(feature = "lazy")]
     fn lazy_singleton_test() {
         let mut container = Container::new();
-        container.add_lazy_singleton(|_| Mutex::new(128_isize)).unwrap();
+        container
+            .add_lazy_singleton(|_| Mutex::new(128_isize))
+            .unwrap();
 
         let s1 = container.get_singleton::<Mutex<isize>>().unwrap();
         assert_eq!(*s1.lock().unwrap(), 128_isize);
@@ -389,16 +395,22 @@ mod tests {
     #[cfg(feature = "lazy")]
     fn lazy_singleton_with_name_test() {
         let mut container = Container::new();
-        container.add_lazy_singleton_with_name("bits", |_| Mutex::new(128_isize)).unwrap();
+        container
+            .add_lazy_singleton_with_name("bits", |_| Mutex::new(128_isize))
+            .unwrap();
 
-        let s1 = container.get_singleton_with_name::<Mutex<isize>>("bits").unwrap();
+        let s1 = container
+            .get_singleton_with_name::<Mutex<isize>>("bits")
+            .unwrap();
         assert_eq!(*s1.lock().unwrap(), 128_isize);
 
         {
             *s1.lock().unwrap() += 128;
         }
 
-        let s2 = container.get_singleton_with_name::<Mutex<isize>>("bits").unwrap();
+        let s2 = container
+            .get_singleton_with_name::<Mutex<isize>>("bits")
+            .unwrap();
         assert_eq!(*s2.lock().unwrap(), 256_isize);
     }
 
@@ -438,8 +450,8 @@ mod tests {
             }
         }
 
-        impl Injectable for Greeter {
-            fn resolve(container: &Container) -> Self {
+        impl Inject for Greeter {
+            fn inject(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
                 let total_greets = container
                     .get_singleton_with_name::<Mutex<usize>>("counter")
@@ -484,8 +496,8 @@ mod tests {
             }
         }
 
-        impl Injectable for Greeter {
-            fn resolve(container: &Container) -> Self {
+        impl Inject for Greeter {
+            fn inject(container: &Container) -> Self {
                 let message = container.get_scoped_with_name::<String>("en_msg").unwrap();
                 let total_greets = container
                     .get_singleton_with_name::<Mutex<usize>>("counter")

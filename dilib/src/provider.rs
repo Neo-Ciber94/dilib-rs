@@ -1,5 +1,5 @@
 use crate::scoped::Scoped;
-use crate::{Container, Injectable, Shared, Singleton};
+use crate::{Container, Inject, Shared, Singleton};
 use std::fmt::{Debug, Formatter};
 
 /// Represents the type of the provider.
@@ -39,7 +39,7 @@ impl<'a> Provider<'a> {
         }
     }
 
-    /// Gets a value of the specified type `T` or `None` if `T` is `Injectable`.
+    /// Gets a value of the specified type `T` or `None` if `T` is `Inject`.
     #[inline]
     pub fn get_scoped<T>(&self) -> Option<T>
     where
@@ -51,14 +51,14 @@ impl<'a> Provider<'a> {
         }
     }
 
-    /// Gets a value of the specified type `T` or `None` if `T` is not `Injectable`.
+    /// Gets a value of the specified type `T` or `None` if `T` is not `Inject`.
     #[inline]
-    pub fn get_injectable<T>(&self, container: &Container) -> Option<T>
+    pub fn get_inject<T>(&self, container: &Container) -> Option<T>
     where
-        T: Injectable + 'static,
+        T: Inject + 'static,
     {
         match self {
-            Provider::Scoped(f) if f.is_injectable() => f.call_injectable::<T>(container),
+            Provider::Scoped(f) if f.is_inject() => f.call_inject::<T>(container),
             _ => None,
         }
     }

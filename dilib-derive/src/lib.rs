@@ -5,10 +5,10 @@ mod strings;
 mod target;
 mod utils;
 
-use crate::target::parse_derive_injectable;
+use crate::target::parse_derive_inject;
 use proc_macro::TokenStream;
 
-/// Provides an implementation of the `Injectable` trait for the given type.
+/// Provides an implementation of the `Inject` trait for the given type.
 ///
 /// # Customization
 /// You can use `#[inject]` on the fields to configure how the values are injected.
@@ -23,9 +23,9 @@ use proc_macro::TokenStream;
 /// # Example
 /// ```rust
 /// use std::sync::{Arc, Mutex};
-/// use dilib_derive::Injectable;
+/// use dilib_derive::Inject;
 ///
-/// #[derive(Injectable)]
+/// #[derive(Inject)]
 /// #[inject(constructor="new(counter, api_key, id)")]
 /// struct MyService {
 ///     #[inject(default=1_usize)]
@@ -45,9 +45,9 @@ use proc_macro::TokenStream;
 /// }
 /// ```
 ///
-#[proc_macro_derive(Injectable, attributes(inject))]
+#[proc_macro_derive(Inject, attributes(inject))]
 pub fn derive_injectable_attribute(item: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(item);
 
-    parse_derive_injectable(input).emit().into()
+    parse_derive_inject(input).expand().into()
 }

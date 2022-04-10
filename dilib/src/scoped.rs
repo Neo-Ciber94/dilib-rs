@@ -23,7 +23,7 @@ impl Scoped {
     }
 
     /// Constructs a `Scoped` from a `fn(&Container) -> T` function.
-    pub fn from_injectable<T, F>(f: F) -> Self
+    pub fn from_inject<T, F>(f: F) -> Self
     where
         T: 'static,
         F: Fn(&Container) -> T + Send + Sync + 'static,
@@ -55,7 +55,7 @@ impl Scoped {
     /// # Returns `None` if:
     /// - The inner function is not in the form `fn(&Container) -> T`.
     /// - The given type `T` don't match the return type of the factory.
-    pub fn call_injectable<T: 'static>(&self, container: &Container) -> Option<T> {
+    pub fn call_inject<T: 'static>(&self, container: &Container) -> Option<T> {
         if TypeId::of::<T>() != self.type_id {
             None
         } else {
@@ -72,7 +72,7 @@ impl Scoped {
 
     /// Returns `true` if the inner function is in the form `fn(&Container) -> T`.
     #[inline]
-    pub fn is_injectable(&self) -> bool {
+    pub fn is_inject(&self) -> bool {
         self.inner.takes_args()
     }
 }
@@ -164,10 +164,10 @@ mod tests {
         let mut container = Container::new();
         container.add_scoped(|| String::from("hello")).unwrap();
 
-        let f = Scoped::from_injectable(|c| c.get_scoped::<String>().unwrap());
-        assert!(f.is_injectable());
+        let f = Scoped::from_inject(|c| c.get_scoped::<String>().unwrap());
+        assert!(f.is_inject());
 
-        let value = f.call_injectable::<String>(&container);
+        let value = f.call_inject::<String>(&container);
         assert_eq!(value, Some("hello".to_string()));
     }
 
@@ -182,9 +182,9 @@ mod tests {
     #[test]
     fn invalid_type_injectable_test() {
         let container = Container::new();
-        let f = Scoped::from_injectable(|_| 0.5_f32);
+        let f = Scoped::from_inject(|_| 0.5_f32);
 
-        assert!(f.is_injectable());
-        assert!(f.call_injectable::<bool>(&container).is_none());
+        assert!(f.is_inject());
+        assert!(f.call_inject::<bool>(&container).is_none());
     }
 }
