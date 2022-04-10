@@ -1,8 +1,6 @@
 use crate::scoped::Scoped;
-use crate::{Container, Injectable, Singleton};
-use std::any::Any;
+use crate::{Container, Injectable, Shared, Singleton};
 use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
 
 /// Represents the type of the provider.
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -19,7 +17,7 @@ pub enum Provider {
     /// A provider that returns a new value each time is requested.
     Scoped(Scoped),
     /// A provider that returns the same value each time is required.
-    Singleton(Arc<dyn Any + Send + Sync>),
+    Singleton(Shared),
 }
 
 impl Provider {
@@ -73,7 +71,18 @@ impl Provider {
         T: Send + Sync + 'static,
     {
         match self {
-            Provider::Singleton(value) => value.clone().downcast().ok(),
+            Provider::Singleton(x) => x.get(),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn get_singleton_with<T>(&self, container: &Container) -> Option<Singleton<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        match self {
+            Provider::Singleton(x) => x.get_with(container),
             _ => None,
         }
     }

@@ -6,7 +6,7 @@ use std::sync::Arc;
 /// Represents an `Scoped` provider which provide a new instance each time.
 #[derive(Debug, Clone)]
 pub struct Scoped {
-    type_id: TypeId,
+    type_id: TypeId, // This TypeId may be redundant
     inner: BoxClosure,
 }
 

@@ -255,7 +255,8 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_2() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false)).unwrap();
+        register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false))
+            .unwrap();
 
         let _ret = get_scoped_trait!(container, Gen2<i32, bool>).unwrap();
     }

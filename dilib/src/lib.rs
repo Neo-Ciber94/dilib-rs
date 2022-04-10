@@ -81,6 +81,9 @@ pub use provider::*;
 mod scoped;
 pub use scoped::*;
 
+mod shared;
+pub use shared::*;
+
 mod resolved;
 pub use resolved::*;
 
@@ -92,3 +95,8 @@ pub use dilib_derive::*;
 
 #[cfg(feature = "global")]
 pub mod global;
+
+#[cfg(feature = "unstable_provide")]
+pub mod proc_macros {
+    pub use dilib_macros::*;
+}

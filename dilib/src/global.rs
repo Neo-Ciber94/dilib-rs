@@ -2,6 +2,13 @@ use crate::Container;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicPtr, AtomicU8, Ordering};
 
+#[cfg(feature = "unstable_provide")]
+use {
+    crate::{InjectionKey, Provider},
+    once_cell::sync::Lazy,
+    std::sync::Mutex,
+};
+
 static CONTAINER: GlobalContainer = GlobalContainer::new();
 
 const UNINITIALIZED: u8 = 0;
@@ -14,14 +21,14 @@ struct GlobalContainer {
 }
 
 impl GlobalContainer {
-    pub const fn new() -> Self {
+    const fn new() -> Self {
         Self {
             container: AtomicPtr::new(std::ptr::null_mut()),
             state: AtomicU8::new(UNINITIALIZED),
         }
     }
 
-    pub fn initialize<F>(&self, init: F) -> Result<(), InitContainerError>
+    fn initialize<F>(&self, init: F) -> Result<(), InitContainerError>
     where
         F: FnOnce(&mut Container<'static>),
     {
@@ -55,10 +62,18 @@ impl GlobalContainer {
         }
     }
 
-    pub fn get(&self) -> Option<&'static Container<'static>> {
+    fn get(&self) -> Option<&'static Container<'static>> {
         match self.state.load(Ordering::SeqCst) {
             INITIALIZED => unsafe { Some(&*self.container.load(Ordering::SeqCst)) },
-            _ => None
+            _ => None,
+        }
+    }
+
+    // This method should never be exposed, global container should be read-only after initialization
+    fn get_mut(&self) -> Option<&'static mut Container<'static>> {
+        match self.state.load(Ordering::SeqCst) {
+            INITIALIZED => unsafe { Some(&mut *self.container.load(Ordering::SeqCst)) },
+            _ => None,
         }
     }
 }
@@ -87,13 +102,55 @@ impl Debug for InitContainerError {
     }
 }
 
+// A provider to be injected by #[provide]
+#[doc(hidden)]
+#[cfg(feature = "unstable_provide")]
+pub struct InjectProvider {
+    // The actual provider
+    pub provider: Provider,
+    // The key used to inject the provider
+    pub key: InjectionKey<'static>,
+    // The evaluation order
+    pub order: Option<usize>,
+}
+
+// List of providers to be added to the global container
+#[doc(hidden)]
+#[cfg(feature = "unstable_provide")]
+pub static PROVIDERS: Lazy<Mutex<Option<Vec<InjectProvider>>>> =
+    Lazy::new(|| Mutex::new(Some(vec![])));
+
 /// Initializes the global [`Container`].
-#[inline]
+#[cold]
 pub fn init_container<F>(f: F) -> Result<(), InitContainerError>
 where
     F: FnOnce(&mut Container<'static>),
 {
-    CONTAINER.initialize(f)
+    match CONTAINER.initialize(f) {
+        Ok(_) => {
+            #[cfg(feature = "unstable_provide")]
+            {
+                let mut lock = PROVIDERS.lock().unwrap();
+                let mut providers = lock.take().unwrap();
+                providers.sort_by(|a, b| {
+                    let a_order = a.order.unwrap_or(usize::MAX);
+                    let b_order = b.order.unwrap_or(usize::MAX);
+                    a_order.cmp(&b_order)
+                });
+
+                let container = CONTAINER.get_mut().unwrap();
+
+                for InjectProvider { key, provider, .. } in providers {
+                    container
+                        .add_provider_internal(key.clone(), provider)
+                        .unwrap_or_else(|_| panic!("Failed to add provider for key: {:?}", key));
+                }
+            }
+
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
 }
 
 /// Returns a reference to the global [`Container`] or `None` if is not initialized.
@@ -156,7 +213,7 @@ macro_rules! get_singleton {
 
 #[cfg(test)]
 mod tests {
-    use crate::global::{get_container, GlobalContainer, init_container};
+    use crate::global::{get_container, init_container, GlobalContainer};
     use crate::{register_scoped_trait, register_singleton_trait};
     use std::sync::Mutex;
 
@@ -181,14 +238,14 @@ mod tests {
     #[test]
     fn global_container_test() {
         init_container(|container| {
-                container
-                    .add_scoped(|| String::from("Hello World"))
-                    .unwrap();
-                container.add_singleton(Mutex::new(5_i32)).unwrap();
-                register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
-                register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
-            })
-            .unwrap();
+            container
+                .add_scoped(|| String::from("Hello World"))
+                .unwrap();
+            container.add_singleton(Mutex::new(5_i32)).unwrap();
+            register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
+            register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
+        })
+        .unwrap();
 
         let container = get_container().unwrap();
 

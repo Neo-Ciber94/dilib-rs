@@ -2,6 +2,7 @@
 members = [
     "dilib",
     "dilib-derive",
+    "dilib-macros",
     "test_suite",
     "samples/*"
 ]

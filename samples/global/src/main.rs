@@ -1,56 +1,74 @@
-use dilib::global::init_container;
-use dilib::{get_scoped, Injectable, InjectionKey, Provider, Scoped};
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
+use dilib::global::{init_container};
+use dilib::{
+    get_scoped, get_singleton, Container, Injectable,
+    proc_macros::{provide, inject}
+};
+use std::sync::{Arc, Mutex};
 
-static PROVIDERS: Lazy<Mutex<Option<Vec<(InjectionKey<'static>, Provider)>>>> =
-    Lazy::new(|| Default::default());
-
-// #[provide(with="default")]
-// struct Hello {
-//     name: String,
-// }
-//
-// #[provide(scope="singleton", name="es", order=1000)]
-// pub fn say_hola(locale: Localizer) -> String {
-//     "Hola".to_string()
-// }
-//
-// #[provide]
-// pub fn get_hello() -> String {
-//     String::from("Hello World")
-// }
-
-//#[provide]
-#[derive(Injectable)]
-struct Greeting {
-    #[inject(default = "Hola Mundo")]
-    greeting: String,
+#[provide]
+fn hello() -> String {
+    "Hello".to_string()
 }
 
-#[ctor::ctor]
-fn init() {
-    let mut lock = PROVIDERS.lock().unwrap();
-    let providers = lock.get_or_insert_with(|| Vec::new());
-    let key = InjectionKey::of::<usize>();
-    let provider = Provider::Scoped(Scoped::from_injectable::<usize, _>(|c| {
-        let x = c.get_scoped::<String>().unwrap();
-        println!("{:?}", x);
-        x.len()
-    }));
-    providers.push((key, provider));
+#[provide(scope="singleton", name="count", order=2)]
+#[cold] // You may require to use #[cold] because the function will only be called once
+fn counter() -> Mutex<usize> {
+    Mutex::new(0)
+}
+
+#[provide(order=1000)]
+struct PrintCount {
+    counter: Arc<Mutex<usize>>,
+    greet: String,
+}
+
+impl PrintCount {
+    fn print(&self) {
+        let counter = self.counter.lock().expect("unable to get counter lock");
+        let val = *counter;
+        println!("{} {}", self.greet, val);
+    }
+}
+
+impl Injectable for PrintCount {
+    fn resolve(container: &Container) -> Self {
+        let counter = container
+            .get_singleton_with_name::<Mutex<usize>>("count")
+            .expect("unable to get counter");
+
+        let greet = container
+            .get_scoped::<String>()
+            .expect("unable to get greet");
+
+        PrintCount { counter, greet }
+    }
+}
+
+
+#[provide(name="hola")]
+#[inject(counter, name="count")]
+fn say_hola(counter: Arc<Mutex<usize>>) -> String {
+    let lock = counter.lock().expect("unable to get counter lock");
+    let val = *lock;
+    format!("Hola {}", val)
 }
 
 fn main() {
-    init_container(|c| {
-        c.add_scoped(|| String::from("Hola")).unwrap();
-        let providers = PROVIDERS.lock().unwrap().take().unwrap();
-        for (key, provider) in providers {
-            c.__add_provider(key, provider).unwrap();
-        }
-    })
+    init_container(|_| {})
     .unwrap();
 
-    let val = get_scoped!(usize).unwrap();
-    println!("{}", val);
+    let hello = get_scoped!(String).expect("unable to get hello");
+    let count = get_singleton!(Mutex<usize>, "count").expect("unable to get count");
+
+    {
+        let mut lock = count.lock().expect("unable to get counter lock");
+        *lock += 5;
+    }
+
+    let hola = get_scoped!(String, "hola").expect("unable to get hola");
+    let print_count = get_scoped!(PrintCount).expect("unable to get print count");
+
+    println!("{}", hello);
+    print_count.print();
+    println!("{}", hola);
 }

@@ -1,6 +1,6 @@
 use crate::provider::Provider;
 use crate::scoped::Scoped;
-use crate::{Injectable, InjectionKey, Resolved};
+use crate::{Injectable, InjectionKey, Resolved, Shared};
 use std::any::TypeId;
 use std::collections::hash_map::{Iter, Values};
 use std::collections::HashMap;
@@ -222,7 +222,7 @@ impl<'a> Container<'a> {
     {
         let singleton = Arc::new(value);
         let name = name.map(|s| s.to_string());
-        self.add_provider::<T>(Provider::Singleton(singleton), name)
+        self.add_provider::<T>(Provider::Singleton(Shared::Instance(singleton)), name)
     }
 
     fn get_internal<T>(&self, name: Option<&str>) -> Option<Resolved<T>>
@@ -233,38 +233,28 @@ impl<'a> Container<'a> {
         let key = InjectionKey::new(type_id, name);
 
         if let Some(provider) = self.providers.get(&key) {
-            if provider.is_scoped() {
-                match provider {
-                    Provider::Scoped(f) => {
-                        if f.is_factory() {
-                            f.call_factory().map(Resolved::Scoped)
-                        } else {
-                            f.call_injectable(self).map(Resolved::Scoped)
-                        }
+            match provider {
+                Provider::Scoped(x) => {
+                    if x.is_factory() {
+                        x.call_factory().map(Resolved::Scoped)
+                    } else {
+                        x.call_injectable(self).map(Resolved::Scoped)
                     }
-                    Provider::Singleton(_) => unreachable!(),
                 }
-            } else {
-                provider.get_singleton().map(Resolved::Singleton)
+                Provider::Singleton(x) => {
+                    if x.is_factory() {
+                        x.get_with(self).map(Resolved::Singleton)
+                    } else {
+                        x.get().map(Resolved::Singleton)
+                    }
+                }
             }
         } else {
             None
         }
     }
 
-    // TODO: Remove
-    #[doc(hidden)]
-    pub fn __add_provider(
-        &mut self,
-        key: InjectionKey<'a>,
-        provider: Provider,
-    ) -> Result<(), Provider> {
-        match self.providers.insert(key, provider) {
-            Some(x) => Err(x),
-            None => Ok(()),
-        }
-    }
-
+    #[inline]
     pub(crate) fn add_provider<T: 'static>(
         &mut self,
         provider: Provider,
@@ -272,6 +262,14 @@ impl<'a> Container<'a> {
     ) -> Result<(), Provider> {
         let type_id = TypeId::of::<T>();
         let key = InjectionKey::new(type_id, name);
+        self.add_provider_internal(key, provider)
+    }
+
+    pub(crate) fn add_provider_internal(
+        &mut self,
+        key: InjectionKey<'a>,
+        provider: Provider,
+    ) -> Result<(), Provider> {
         match self.providers.insert(key, provider) {
             Some(x) => Err(x),
             None => Ok(()),
@@ -300,7 +298,9 @@ mod tests {
     #[test]
     fn scoped_with_name_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name("greet", || "hello world").unwrap(); // &str
+        container
+            .add_scoped_with_name("greet", || "hello world")
+            .unwrap(); // &str
 
         assert_eq!(container.len(), 1);
 
@@ -327,7 +327,9 @@ mod tests {
     #[test]
     fn singleton_with_name_test() {
         let mut container = Container::new();
-        container.add_singleton_with_name("funny number", 42069_i32).unwrap();
+        container
+            .add_singleton_with_name("funny number", 42069_i32)
+            .unwrap();
 
         assert_eq!(container.len(), 1);
 
@@ -343,9 +345,15 @@ mod tests {
     fn contains_test() {
         let mut container = Container::new();
         container.add_scoped(|| 200_i32).unwrap();
-        container.add_scoped_with_name("number", || 999_i32).unwrap();
-        container.add_singleton(String::from("have a good day")).unwrap();
-        container.add_singleton_with_name("bye", "adios amigo").unwrap();
+        container
+            .add_scoped_with_name("number", || 999_i32)
+            .unwrap();
+        container
+            .add_singleton(String::from("have a good day"))
+            .unwrap();
+        container
+            .add_singleton_with_name("bye", "adios amigo")
+            .unwrap();
 
         assert_eq!(container.len(), 4);
 
@@ -383,9 +391,13 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", Mutex::new(0_usize)).unwrap();
+        container
+            .add_singleton_with_name("counter", Mutex::new(0_usize))
+            .unwrap();
         container.add_deps::<Greeter>().unwrap();
-        container.add_scoped_with_name("en_msg", || String::from("hello")).unwrap();
+        container
+            .add_scoped_with_name("en_msg", || String::from("hello"))
+            .unwrap();
 
         let greeter = container.get_scoped::<Greeter>().unwrap();
         let s = greeter.greet();
@@ -425,9 +437,15 @@ mod tests {
         }
 
         let mut container = Container::new();
-        container.add_singleton_with_name("counter", Mutex::new(0_usize)).unwrap();
-        container.add_deps_with_name::<Greeter>("en_greeter").unwrap();
-        container.add_scoped_with_name("en_msg", || String::from("hello")).unwrap();
+        container
+            .add_singleton_with_name("counter", Mutex::new(0_usize))
+            .unwrap();
+        container
+            .add_deps_with_name::<Greeter>("en_greeter")
+            .unwrap();
+        container
+            .add_scoped_with_name("en_msg", || String::from("hello"))
+            .unwrap();
 
         let greeter = container
             .get_scoped_with_name::<Greeter>("en_greeter")
@@ -452,8 +470,12 @@ mod tests {
 
         container.add_scoped(|| true).unwrap();
         container.add_singleton(String::from("blue")).unwrap();
-        container.add_scoped_with_name("number", || 200_i32).unwrap();
-        container.add_singleton_with_name("color", String::from("red")).unwrap();
+        container
+            .add_scoped_with_name("number", || 200_i32)
+            .unwrap();
+        container
+            .add_singleton_with_name("color", String::from("red"))
+            .unwrap();
 
         assert_eq!(container.len(), 4);
 
@@ -525,7 +547,9 @@ mod tests {
     #[test]
     fn iter_test() {
         let mut container = Container::new();
-        container.add_scoped_with_name("truthfulness", || true).unwrap();
+        container
+            .add_scoped_with_name("truthfulness", || true)
+            .unwrap();
         container.add_singleton(2500_i32).unwrap();
 
         let iter = container.iter();

@@ -14,6 +14,10 @@ documentation = "https://docs.rs/dilib/"
 full = ["derive", "global"]
 derive = ["dilib-derive"]
 global = []
+unstable_provide = ["dilib-macros", "global", "ctor", "once_cell"]
 
 [dependencies]
 dilib-derive = { version="0.1.0-alpha", optional = true }
+dilib-macros = { path = "../dilib-macros", optional = true}
+ctor = { version ="0.1.22", optional = true }
+once_cell = { version = "1.10.0", optional = true }
