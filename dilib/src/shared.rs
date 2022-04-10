@@ -90,12 +90,14 @@ impl<'a> Shared<'a> {
     }
 }
 
+/// A lazy evaluated cell.
 #[cfg(feature = "lazy")]
 pub mod late_init {
     use once_cell::sync::OnceCell;
     use std::cell::Cell;
     use std::marker::PhantomData;
 
+    /// A `Lazy<T>` that takes an argument.
     pub struct LateInit<T, Arg, F = fn(Arg) -> T> {
         cell: OnceCell<T>,
         init: Cell<Option<F>>,
@@ -105,6 +107,7 @@ pub mod late_init {
     unsafe impl<T: Sync, Arg: Sync, F: Send> Sync for LateInit<T, Arg, F> {}
 
     impl<T, Arg, F> LateInit<T, Arg, F> {
+        /// Constructs a new `LateInit<T>` with the given function.
         pub const fn new(init: F) -> Self {
             LateInit {
                 cell: OnceCell::new(),
@@ -113,11 +116,13 @@ pub mod late_init {
             }
         }
 
+        /// Returns `Some(&T)` if the value has been initialized, `None` otherwise.
         #[inline]
         pub fn get(&self) -> Option<&T> {
             self.cell.get()
         }
 
+        /// Returns `true` if the value has been initialized.
         #[inline]
         pub fn is_init(&self) -> bool {
             self.get().is_some()
@@ -128,6 +133,7 @@ pub mod late_init {
     where
         F: FnOnce(Arg) -> T,
     {
+        /// Initializes the instance if it has not been initialized and returns a reference to the value.
         pub fn get_or_init(&self, arg: Arg) -> &T {
             self.cell.get_or_init(|| match self.init.take() {
                 Some(init) => init(arg),

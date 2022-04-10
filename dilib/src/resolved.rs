@@ -10,10 +10,6 @@ pub enum Resolved<T> {
     Singleton(Arc<T>),
 }
 
-unsafe impl<T> Send for Resolved<T> where T: Send {}
-
-unsafe impl<T> Sync for Resolved<T> where T: Sync {}
-
 impl<T> Resolved<T> {
     /// Returns `true` if the value is a singleton.
     pub fn is_singleton(&self) -> bool {
@@ -28,8 +24,8 @@ impl<T> Resolved<T> {
     /// Returns a mutable reference to the value.
     ///
     /// # Returns
-    /// - Some(&mut T): If the value is scoped or if the singleton and only has one reference to it.
-    /// - None: If the value is a singleton and have more a reference to it.
+    /// - Some(&mut T): If the value is scoped or if the singleton has only has one reference to it.
+    /// - None: If the value is a singleton and have more than a reference to it.
     pub fn get_mut(&mut self) -> Option<&mut T> {
         match self {
             Resolved::Scoped(ref mut v) => Some(v),
@@ -50,6 +46,16 @@ impl<T> Resolved<T> {
         match self {
             Resolved::Scoped(t) => Some(t),
             _ => None,
+        }
+    }
+}
+
+impl<T: Clone> Resolved<T> {
+    /// Returns a copy of the value.
+    pub fn cloned(&self) -> T {
+        match self {
+            Resolved::Scoped(v) => v.clone(),
+            Resolved::Singleton(v) => v.as_ref().clone(),
         }
     }
 }

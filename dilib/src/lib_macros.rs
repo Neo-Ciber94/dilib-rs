@@ -240,6 +240,20 @@ macro_rules! get_singleton_trait {
     }};
 }
 
+/// Helper macro to get an implementation of a `trait` in a `Container`.
+#[macro_export]
+macro_rules! get_resolved_trait {
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?) => {{
+        let ret = $container.get::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static)>>();
+        ret
+    }};
+
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $name:literal) => {{
+        let ret = $container.get_with_name::<std::boxed::Box<(dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static)>>($name);
+        ret
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Container;
@@ -267,6 +281,16 @@ mod tests {
         register_scoped_trait!(container, Gen3<i32, bool, String>, Gen3Impl::<i32, bool, String>(10, false, String::from("test"))).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen3<i32, bool, String>).unwrap();
+    }
+
+    #[test]
+    fn compile_get_resolved_trait() {
+        let mut container = Container::new();
+        register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10)).unwrap();
+        register_singleton_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false)).unwrap();
+
+        let _r1 = get_resolved_trait!(container, Gen1<i32>).unwrap();
+        let _r2 = get_resolved_trait!(container, Gen2<i32, bool>).unwrap();
     }
 
     trait Gen1<T1> {

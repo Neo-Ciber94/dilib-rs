@@ -2,7 +2,7 @@
 name = "dilib"
 description = "A dependency injection library for Rust"
 keywords = ["rust-patterns"]
-version = "0.1.3-alpha"
+version = "0.2.0-alpha"
 authors = ["Freddy L."]
 edition = "2021"
 license-file = "LICENSE"
@@ -11,10 +11,25 @@ homepage = "https://crates.io/crates/dilib/"
 documentation = "https://docs.rs/dilib/"
 
 [features]
-full = ["derive", "global"]
+# Nothing by default
+default=[]
+
+# All features excluting unstables
+full = ["derive", "global", "lazy"]
+
+# Enables #[derive(Injectable)] proc macro
 derive = ["dilib-derive"]
+
+# Enables global `Container`
 global = []
+
+# Enables lazy singletons
 lazy = ["once_cell"]
+
+# Enables #[provide(...)] proc macro for global `Container`.
+# This feature is considered unstable because `Rust` does not guarantee
+# that code will always be allowed to executed before `main`
+# until global constructor get implemented, if ever happen.
 unstable_provide = ["dilib-macros", "global", "ctor", "lazy"]
 
 [dependencies]

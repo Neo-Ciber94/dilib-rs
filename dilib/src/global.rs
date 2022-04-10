@@ -203,6 +203,31 @@ macro_rules! get_singleton {
     }};
 }
 
+#[macro_export]
+macro_rules! resolve {
+    ($type:ty) => {
+        $crate::global::get_container()
+            .expect("The container is not initialized")
+            .get::<$type>()
+    };
+
+    ($type:ty, $name:expr) => {
+        $crate::global::get_container()
+            .expect("The container is not initialized")
+            .get_with_name::<$type>($name)
+    };
+
+    (trait $trait_type:ident $(<$($generic:ident),+>)?) => {{
+        let container = $crate::global::get_container().expect("The container is not initialized");
+        $crate::get_resolved_trait!(container, $trait_type $(<$($generic),+>)?)
+    }};
+
+    (trait $trait_type:ident $(<$($generic:ident),+>)?, $name:expr) => {{
+        let container = $crate::global::get_container().expect("The container is not initialized");
+        $crate::get_resolved_trait!(container, $trait_type $(<$($generic),+>)?, $name)
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use crate::global::{get_container, init_container, GlobalContainer};
@@ -265,6 +290,12 @@ mod tests {
 
         let r4 = get_singleton!(trait Greeter).unwrap();
         assert_eq!(r4.greet(), "Hello, world!");
+
+        let r5 = resolve!(String).unwrap();
+        let r6 = resolve!(Mutex<i32>).unwrap();
+
+        assert_eq!(&*r5, "Hello World");
+        assert_eq!(*r6.lock().unwrap(), 5_i32);
     }
 
     #[test]

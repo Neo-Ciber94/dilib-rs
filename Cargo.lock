@@ -422,7 +422,7 @@ dependencies = [
 
 [[package]]
 name = "dilib"
-version = "0.1.3-alpha"
+version = "0.2.0-alpha"
 dependencies = [
  "ctor",
  "dilib-derive 0.1.0-alpha (registry+https://github.com/rust-lang/crates.io-index)",
