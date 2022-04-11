@@ -58,12 +58,10 @@ impl<'a> Provider<'a> {
         T: Inject + 'static,
     {
         match self {
-            Provider::Scoped(scoped) => {
-                match scoped {
-                    Scoped::Factory(_) => None,
-                    Scoped::Inject(_) => scoped.call_inject(container),
-                    Scoped::TryInject(_) => scoped.call_try_inject(container).ok(),
-                }
+            Provider::Scoped(scoped) => match scoped {
+                Scoped::Factory(_) => None,
+                Scoped::Inject(_) => scoped.call_inject(container),
+                Scoped::TryInject(_) => scoped.call_try_inject(container).ok(),
             },
             _ => None,
         }

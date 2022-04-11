@@ -114,8 +114,8 @@ impl Debug for Scoped {
 
 #[cfg(test)]
 mod tests {
-    use crate::Container;
     use crate::scoped::Scoped;
+    use crate::Container;
 
     #[test]
     fn call_factory_test() {

@@ -39,7 +39,10 @@ pub trait TryInject: Sized {
     fn try_inject(container: &Container) -> Result<Self, ResolveError>;
 }
 
-impl<I> Inject for I where I: TryInject {
+impl<I> Inject for I
+where
+    I: TryInject,
+{
     fn inject(container: &Container) -> Self {
         Self::try_inject(container).unwrap()
     }

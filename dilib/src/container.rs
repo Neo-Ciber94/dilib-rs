@@ -1,3 +1,4 @@
+use crate::error::ResolveError;
 use crate::provider::Provider;
 use crate::scoped::Scoped;
 use crate::{Inject, InjectionKey, Resolved, Shared, TryInject};
@@ -5,7 +6,6 @@ use std::any::TypeId;
 use std::collections::hash_map::{Iter, Values};
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::error::ResolveError;
 
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<T>;
@@ -131,8 +131,8 @@ impl<'a> Container<'a> {
     /// there is a provider registered for that type.
     #[inline]
     pub fn add_try_deps<T>(&mut self) -> Result<(), Provider>
-        where
-            T: TryInject + Send + Sync + 'static,
+    where
+        T: TryInject + Send + Sync + 'static,
     {
         self.add_scoped_internal::<T>(Scoped::from_try_inject(T::try_inject), None)
     }
@@ -144,8 +144,8 @@ impl<'a> Container<'a> {
     /// there is a provider registered for that type.
     #[inline]
     pub fn add_try_deps_with_name<T>(&mut self, name: &str) -> Result<(), Provider>
-        where
-            T: TryInject + Send + Sync + 'static,
+    where
+        T: TryInject + Send + Sync + 'static,
     {
         self.add_scoped_internal::<T>(Scoped::from_try_inject(T::try_inject), Some(name))
     }
@@ -172,6 +172,30 @@ impl<'a> Container<'a> {
         T: Send + Sync + 'static,
     {
         self.get_internal::<T>(Some(name))
+    }
+
+    /// Attempts to returns a value registered for the given type or `Err`
+    /// if no provider is register for the given type.
+    ///
+    /// The returning value could be either scoped or a singleton.
+    #[inline]
+    pub fn try_get<T>(&self) -> Result<Resolved<T>, ResolveError>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.try_get_internal::<T>(None)
+    }
+
+    /// Attempts to returns a value registered for the given type and name or `Err`
+    /// if no provider is register for the given type.
+    ///
+    /// The returning value could be either scoped or a singleton.
+    #[inline]
+    pub fn try_get_with_name<T>(&self, name: &str) -> Result<Resolved<T>, ResolveError>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.try_get_internal::<T>(Some(name))
     }
 
     /// Returns a value registered for the given type, or `None`
@@ -294,7 +318,9 @@ impl<'a> Container<'a> {
                 Provider::Scoped(x) => match x {
                     Scoped::Factory(_) => x.call_factory().map(|x| Resolved::Scoped(x)),
                     Scoped::Inject(_) => x.call_inject(self).map(|x| Resolved::Scoped(x)),
-                    Scoped::TryInject(_) => x.call_try_inject(self).ok().map(|x| Resolved::Scoped(x)),
+                    Scoped::TryInject(_) => {
+                        x.call_try_inject(self).ok().map(|x| Resolved::Scoped(x))
+                    }
                 },
                 Provider::Singleton(x) => match x {
                     Shared::Instance(_) => x.get().map(Resolved::Singleton),
@@ -314,16 +340,13 @@ impl<'a> Container<'a> {
     #[inline]
     #[allow(dead_code)]
     fn try_get_internal<T>(&self, name: Option<&str>) -> Result<Resolved<T>, ResolveError>
-        where
-            T: Send + Sync + 'static,
+    where
+        T: Send + Sync + 'static,
     {
-        self.get_internal::<T>(name)
-            .ok_or_else(move || {
-                match name {
-                    Some(s) => ResolveError::missing_dependency_with_name::<T, _>(s),
-                    None => ResolveError::missing_dependency::<T>()
-                }
-            })
+        self.get_internal::<T>(name).ok_or_else(move || match name {
+            Some(s) => ResolveError::missing_dependency_with_name::<T, _>(s),
+            None => ResolveError::missing_dependency::<T>(),
+        })
     }
 
     pub(crate) fn add_provider<T: 'static>(
@@ -687,5 +710,58 @@ mod tests {
         assert_eq!(None, k2.name());
         assert_eq!(TypeId::of::<i32>(), k2.type_id());
         assert_eq!(2500_i32, *p2.get_singleton::<i32>().unwrap());
+    }
+
+    #[test]
+    fn get_test() {
+        let mut container = Container::new();
+        container.add_scoped(|| String::from("orange")).unwrap();
+        container.add_singleton(12_usize).unwrap();
+
+        assert_eq!(Some(&String::from("orange")), container.get::<String>().as_deref());
+        assert_eq!(Some(&12_usize), container.get::<usize>().as_deref());
+    }
+
+    #[test]
+    fn get_with_name_test() {
+        let mut container = Container::new();
+        container.add_scoped_with_name("truthy", || true).unwrap();
+        container.add_singleton_with_name("falsy", false).unwrap();
+
+        assert_eq!(Some(&true), container.get_with_name::<bool>("truthy").as_deref());
+
+        assert_eq!(Some(&false), container.get_with_name::<bool>("falsy").as_deref());
+    }
+
+    #[test]
+    fn try_get_test() {
+        let mut container = Container::new();
+        container.add_scoped(|| String::from("orange")).unwrap();
+        container.add_singleton(12_usize).unwrap();
+
+        assert_eq!(
+            Some(&String::from("orange")),
+            container.try_get::<String>().as_deref().ok()
+        );
+        assert_eq!(Some(&12_usize), container.try_get::<usize>().as_deref().ok());
+        assert!(container.try_get::<bool>().is_err());
+    }
+
+    #[test]
+    fn try_get_with_name_test() {
+        let mut container = Container::new();
+        container.add_scoped_with_name("truthy", || true).unwrap();
+        container.add_singleton_with_name("falsy", false).unwrap();
+
+        assert_eq!(
+            Some(&true),
+            container.try_get_with_name::<bool>("truthy").as_deref().ok()
+        );
+
+        assert_eq!(
+            Some(&false),
+            container.try_get_with_name::<bool>("falsy").as_deref().ok()
+        );
+        assert!(container.try_get_with_name::<bool>("not_found").is_err());
     }
 }

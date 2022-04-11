@@ -95,28 +95,23 @@ pub mod error;
 pub(crate) mod typing;
 
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
 mod derive {
     extern crate dilib_derive;
     pub use dilib_derive::*;
 }
 
 #[cfg(feature = "derive")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
 pub use derive::*;
 
 /// A global instance of `Container`.
 #[cfg(feature = "global")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "global")))]
 pub mod global;
 
 /// procedural macros of `dilib`.
 #[cfg(feature = "unstable_provide")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "unstable_provide")))]
 pub mod macros {
     pub use dilib_macros::*;
 }
 
 #[cfg(feature = "unstable_provide")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "unstable_provide")))]
 pub use macros::*;
