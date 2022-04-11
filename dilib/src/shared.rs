@@ -47,12 +47,6 @@ impl<'a> Shared<'a> {
         Shared::Lazy(Arc::new(lazy))
     }
 
-    /// Returns `true` if the singleton is lazy.
-    #[cfg(feature = "lazy")]
-    pub fn is_lazy(&self) -> bool {
-        matches!(self, Shared::Lazy(_))
-    }
-
     pub(crate) fn get<T>(&self) -> Option<Arc<T>>
     where
         T: Send + Sync + 'static,

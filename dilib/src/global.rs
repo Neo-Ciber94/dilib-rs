@@ -151,7 +151,7 @@ pub fn get_container() -> Option<&'static Container<'static>> {
     CONTAINER.get()
 }
 
-/// Returns a scoped value from the global [`Container`].
+/// Returns a scoped value from the global [`Container`] or `None` if is not in the container.
 #[macro_export]
 macro_rules! get_scoped {
     ($scoped_type:ty) => {
@@ -177,7 +177,7 @@ macro_rules! get_scoped {
    }};
 }
 
-/// Returns a singleton value from the global [`Container`].
+/// Returns a singleton value from the global [`Container`] or `None` if is not in the container.
 #[macro_export]
 macro_rules! get_singleton {
     ($singleton_type:ty) => {
@@ -203,6 +203,7 @@ macro_rules! get_singleton {
     }};
 }
 
+/// Returns a value from the [`Container`] or `None` if is not in the container.
 #[macro_export]
 macro_rules! resolve {
     ($type:ty) => {

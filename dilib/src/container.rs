@@ -1,10 +1,11 @@
 use crate::provider::Provider;
 use crate::scoped::Scoped;
-use crate::{Inject, InjectionKey, Resolved, Shared};
+use crate::{Inject, InjectionKey, Resolved, Shared, TryInject};
 use std::any::TypeId;
 use std::collections::hash_map::{Iter, Values};
 use std::collections::HashMap;
 use std::sync::Arc;
+use crate::error::ResolveError;
 
 /// A convenient singleton type.
 pub type Singleton<T> = Arc<T>;
@@ -123,6 +124,32 @@ impl<'a> Container<'a> {
         self.add_scoped_internal::<T>(Scoped::from_inject(T::inject), Some(name))
     }
 
+    /// Adds a scoped `TryInject` that depends on others providers.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
+    #[inline]
+    pub fn add_try_deps<T>(&mut self) -> Result<(), Provider>
+        where
+            T: TryInject + Send + Sync + 'static,
+    {
+        self.add_scoped_internal::<T>(Scoped::from_try_inject(T::try_inject), None)
+    }
+
+    /// Adds a scoped named `TryInject` that depends on others providers.
+    ///
+    /// # Returns
+    /// `Ok(())` if the provider was added, or `Err(Provider)` if
+    /// there is a provider registered for that type.
+    #[inline]
+    pub fn add_try_deps_with_name<T>(&mut self, name: &str) -> Result<(), Provider>
+        where
+            T: TryInject + Send + Sync + 'static,
+    {
+        self.add_scoped_internal::<T>(Scoped::from_try_inject(T::try_inject), Some(name))
+    }
+
     /// Returns a value registered for the given type or `None`
     /// if no provider is register for the given type.
     ///
@@ -191,37 +218,44 @@ impl<'a> Container<'a> {
     }
 
     /// Returns `true` if the `Container` have a provider for the given `InjectionKey`.
+    #[inline]
     pub fn contains(&self, key: InjectionKey) -> bool {
         self.providers.contains_key(&key)
     }
 
     /// Removes the provider with the given `InjectionKey` and returns it,
     /// or `None` if the provider is not found.
+    #[inline]
     pub fn remove(&mut self, key: InjectionKey<'a>) -> Option<Provider> {
         self.providers.remove(&key)
     }
 
     /// Returns the number of providers in this `Container`.
+    #[inline]
     pub fn len(&self) -> usize {
         self.providers.len()
     }
 
     /// Returns `true` is this container have no providers.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.providers.is_empty()
     }
 
     /// Removes all the providers in this `Container`.
+    #[inline]
     pub fn clear(&mut self) {
         self.providers.clear();
     }
 
     /// Returns an iterator over the providers of this container.
+    #[inline]
     pub fn providers(&self) -> Values<'_, InjectionKey<'a>, Provider> {
         self.providers.values()
     }
 
     /// Returns an iterator over the keys and providers of this container.
+    #[inline]
     pub fn iter(&self) -> Iter<'_, InjectionKey<'a>, Provider> {
         self.providers.iter()
     }
@@ -257,28 +291,20 @@ impl<'a> Container<'a> {
 
         if let Some(provider) = self.providers.get(&key) {
             match provider {
-                Provider::Scoped(x) => {
-                    if x.is_factory() {
-                        x.call_factory().map(Resolved::Scoped)
-                    } else {
-                        x.call_inject(self).map(Resolved::Scoped)
-                    }
-                }
-                Provider::Singleton(x) => {
+                Provider::Scoped(x) => match x {
+                    Scoped::Factory(_) => x.call_factory().map(|x| Resolved::Scoped(x)),
+                    Scoped::Inject(_) => x.call_inject(self).map(|x| Resolved::Scoped(x)),
+                    Scoped::TryInject(_) => x.call_try_inject(self).ok().map(|x| Resolved::Scoped(x)),
+                },
+                Provider::Singleton(x) => match x {
+                    Shared::Instance(_) => x.get().map(Resolved::Singleton),
+
                     #[cfg(feature = "lazy")]
-                    {
-                        if x.is_lazy() {
-                            x.get_with(self).map(Resolved::Singleton)
-                        } else {
-                            x.get().map(Resolved::Singleton)
-                        }
-                    }
+                    Shared::Lazy(_) => x.get_with(self).map(Resolved::Singleton),
 
                     #[cfg(not(feature = "lazy"))]
-                    {
-                        x.get().map(Resolved::Singleton)
-                    }
-                }
+                    Shared::__NonExhaustive(_) => None,
+                },
             }
         } else {
             None
@@ -286,6 +312,20 @@ impl<'a> Container<'a> {
     }
 
     #[inline]
+    #[allow(dead_code)]
+    fn try_get_internal<T>(&self, name: Option<&str>) -> Result<Resolved<T>, ResolveError>
+        where
+            T: Send + Sync + 'static,
+    {
+        self.get_internal::<T>(name)
+            .ok_or_else(move || {
+                match name {
+                    Some(s) => ResolveError::missing_dependency_with_name::<T, _>(s),
+                    None => ResolveError::missing_dependency::<T>()
+                }
+            })
+    }
+
     pub(crate) fn add_provider<T: 'static>(
         &mut self,
         provider: Provider<'a>,

@@ -1,3 +1,4 @@
+use crate::error::ResolveError;
 use crate::Container;
 
 /// A trait for constructing a type getting the dependencies from a `Container`.
@@ -33,7 +34,13 @@ pub trait Inject {
 }
 
 /// A trait for attempt to construct a type getting the dependencies from a `Container`.
-pub trait TryInject : Sized {
+pub trait TryInject: Sized {
     /// Attempts to constructs this type using the `Container`.
-    fn try_inject(container: &Container) -> Result<Self, &'static str>;
+    fn try_inject(container: &Container) -> Result<Self, ResolveError>;
+}
+
+impl<I> Inject for I where I: TryInject {
+    fn inject(container: &Container) -> Self {
+        Self::try_inject(container).unwrap()
+    }
 }

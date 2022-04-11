@@ -46,7 +46,7 @@ impl<'a> Provider<'a> {
         T: Send + Sync + 'static,
     {
         match self {
-            Provider::Scoped(f) if f.is_factory() => f.call_factory::<T>(),
+            Provider::Scoped(scoped @ Scoped::Factory(_)) => scoped.call_factory(),
             _ => None,
         }
     }
@@ -58,7 +58,13 @@ impl<'a> Provider<'a> {
         T: Inject + 'static,
     {
         match self {
-            Provider::Scoped(f) if f.is_inject() => f.call_inject::<T>(container),
+            Provider::Scoped(scoped) => {
+                match scoped {
+                    Scoped::Factory(_) => None,
+                    Scoped::Inject(_) => scoped.call_inject(container),
+                    Scoped::TryInject(_) => scoped.call_try_inject(container).ok(),
+                }
+            },
             _ => None,
         }
     }

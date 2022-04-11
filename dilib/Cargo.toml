@@ -10,6 +10,10 @@ repository = "https://github.com/Neo-Ciber94/dilib-rs/"
 homepage = "https://crates.io/crates/dilib/"
 documentation = "https://docs.rs/dilib/"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]
+
 [features]
 # Nothing by default
 default=[]
@@ -37,3 +41,6 @@ dilib-derive = { path="../dilib-derive", optional = true }
 dilib-macros = { path = "../dilib-macros", optional = true}
 ctor = { version ="0.1.22", optional = true }
 once_cell = { version = "1.10.0", optional = true }
+
+[dev-dependencies]
+dilib-derive = { path="../dilib-derive" }
