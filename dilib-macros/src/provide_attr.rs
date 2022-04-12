@@ -5,7 +5,6 @@ use mattro::{MacroAttribute, Value};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::collections::HashMap;
-use std::str::FromStr;
 use syn::{AttrStyle, AttributeArgs, ItemFn, ItemStruct, ReturnType};
 
 #[derive(Debug)]
@@ -40,7 +39,7 @@ impl ProvideAttribute {
                     .to_string_literal()
                     .expect("#[provide] 'scope' must be a string literal")
             })
-            .map(|s| Scope::from_str(&s).unwrap())
+            .map(|s| Scope::from_str(&s))
             .unwrap_or(Scope::Scoped);
 
         // Handle unknowns key-value
@@ -74,24 +73,22 @@ impl ProvideAttribute {
             Target::Fn(item_fn) => match scope {
                 Scope::Scoped => {
                     if item_fn.sig.inputs.is_empty() {
-                        get_scoped_provider(&item_fn)
+                        get_scoped_provider(item_fn)
                     } else {
-                        get_resolved_scoped_provider(&item_fn, &ty)
+                        get_resolved_scoped_provider(item_fn, &ty)
                     }
                 }
                 Scope::Singleton => {
                     if item_fn.sig.inputs.is_empty() {
-                        get_singleton_provider(&item_fn)
+                        get_singleton_provider(item_fn)
                     } else {
-                        get_resolved_singleton_provider(&item_fn, &ty)
+                        get_resolved_singleton_provider(item_fn, &ty)
                     }
                 }
             },
-            Target::Struct(item_struct) => {
-                match scope {
-                    Scope::Scoped => get_inject_provider(&item_struct),
-                    Scope::Singleton => get_singleton_inject_provider(&item_struct),
-                }
+            Target::Struct(item_struct) => match scope {
+                Scope::Scoped => get_inject_provider(item_struct),
+                Scope::Singleton => get_singleton_inject_provider(item_struct),
             },
         };
 
@@ -121,7 +118,7 @@ impl ProvideAttribute {
     }
 }
 
-fn get_injection_key(ty: &Box<syn::Type>, name: Option<&str>) -> TokenStream {
+fn get_injection_key(ty: &syn::Type, name: Option<&str>) -> TokenStream {
     match name {
         Some(s) => {
             quote! {
@@ -145,9 +142,9 @@ fn get_scoped_provider(item_fn: &ItemFn) -> TokenStream {
     }
 }
 
-fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &Box<syn::Type>) -> TokenStream {
+fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &syn::Type) -> TokenStream {
     let fn_name = item_fn.sig.ident.clone();
-    let resolved_args = ResolvedFnArg::from_fn(&item_fn);
+    let resolved_args = ResolvedFnArg::from_fn(item_fn);
     let arg_names = resolved_args
         .iter()
         .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
@@ -174,9 +171,9 @@ fn get_singleton_provider(item_fn: &ItemFn) -> TokenStream {
     }
 }
 
-fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &Box<syn::Type>) -> TokenStream {
+fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &syn::Type) -> TokenStream {
     let fn_name = item_fn.sig.ident.clone();
-    let resolved_args = ResolvedFnArg::from_fn(&item_fn);
+    let resolved_args = ResolvedFnArg::from_fn(item_fn);
     let arg_names = resolved_args
         .iter()
         .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
@@ -218,7 +215,7 @@ fn get_singleton_inject_provider(item_struct: &ItemStruct) -> TokenStream {
     }
 }
 
-fn generate_fn_name(ty: &Box<syn::Type>, target: &Target) -> syn::Ident {
+fn generate_fn_name(ty: &syn::Type, target: &Target) -> syn::Ident {
     let name = match target {
         Target::Fn(item_fn) => item_fn.sig.ident.clone(),
         Target::Struct(item_struct) => item_struct.ident.clone(),

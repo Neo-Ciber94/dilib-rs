@@ -42,8 +42,7 @@ impl ResolvedFnArg {
             .attrs
             .iter()
             .cloned()
-            .map(|att| MacroAttribute::new(att).ok())
-            .filter_map(|att| att)
+            .filter_map(|att| MacroAttribute::new(att).ok())
             .filter(|att| att.path() == "inject")
             .collect::<Vec<_>>();
 
@@ -86,22 +85,22 @@ impl ToTokens for ResolvedFnArg {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let ResolvedFnArg { name, arg_name, ty } = self;
 
-        let get_provider = match (is_singleton(&ty), name) {
+        let get_provider = match (is_singleton(ty), name) {
             (true, Some(name)) => {
-                let inner = get_singleton_inner_type(&ty);
+                let inner = get_singleton_inner_type(ty);
                 quote! { get_singleton_with_name::<#inner>(#name) }
             }
             (true, None) => {
-                let inner = get_singleton_inner_type(&ty);
+                let inner = get_singleton_inner_type(ty);
                 quote! { get_singleton::<#inner>() }
             }
             (false, Some(name)) => quote! { get_scoped_with_name::<#ty>(#name) },
             (false, None) => quote! { get_scoped::<#ty>() },
         };
 
-        let arg_name = syn::Ident::new(&arg_name, proc_macro2::Span::call_site());
+        let arg_name = syn::Ident::new(arg_name, proc_macro2::Span::call_site());
         let type_name = if is_singleton(ty) {
-            format_tokens(&get_singleton_inner_type(&ty))
+            format_tokens(&get_singleton_inner_type(ty))
         } else {
             format_tokens(ty)
         };
@@ -141,10 +140,7 @@ fn get_singleton_inner_type(ty: &syn::Type) -> Box<syn::Type> {
 fn is_singleton(ty: &syn::Type) -> bool {
     fn is_singleton_internal(path: &[String]) -> bool {
         let path_str = path.join("::");
-        match path_str.as_str() {
-            "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc" => true,
-            _ => false,
-        }
+        matches!(path_str.as_str(), "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc")
     }
 
     match ty {

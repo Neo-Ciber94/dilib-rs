@@ -4,4 +4,4 @@ error: custom attribute panicked
 3 | #[provide(scope="invalid_scope")]
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: called `Result::unwrap()` on an `Err` value: "Invalid scope value: invalid_scope, expected 'singleton' or 'scoped'"
+  = help: message: Invalid scope value: invalid_scope, expected 'singleton' or 'scoped'

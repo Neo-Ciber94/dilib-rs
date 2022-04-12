@@ -1,4 +1,3 @@
-use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Scope {
@@ -6,17 +5,15 @@ pub enum Scope {
     Scoped,
 }
 
-impl FromStr for Scope {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl Scope {
+    pub fn from_str(s: &str) -> Self {
         match s {
-            "singleton" => Ok(Scope::Singleton),
-            "scoped" => Ok(Scope::Scoped),
-            _ => Err(format!(
+            "singleton" => Scope::Singleton,
+            "scoped" => Scope::Scoped,
+            _ => panic!(
                 "Invalid scope value: {}, expected 'singleton' or 'scoped'",
                 s
-            )),
+            ),
         }
     }
 }

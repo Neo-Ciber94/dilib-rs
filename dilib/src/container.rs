@@ -130,9 +130,9 @@ impl<'a> Container<'a> {
     /// there is a provider registered for that type.
     #[inline]
     pub fn add_deps_fn<T, F>(&mut self, f: F) -> Result<(), Provider>
-        where
-            T: Send + Sync + 'static,
-    F: Fn(&Container) -> T + Send + Sync + 'static
+    where
+        T: Send + Sync + 'static,
+        F: Fn(&Container) -> T + Send + Sync + 'static,
     {
         self.add_scoped_internal::<T>(Scoped::from_construct(f), None)
     }
@@ -144,9 +144,9 @@ impl<'a> Container<'a> {
     /// there is a provider registered for that type.
     #[inline]
     pub fn add_deps_fn_with_name<T, F>(&mut self, name: &str, f: F) -> Result<(), Provider>
-        where
-            T: Send + Sync + 'static,
-            F: Fn(&Container) -> T + Send + Sync + 'static
+    where
+        T: Send + Sync + 'static,
+        F: Fn(&Container) -> T + Send + Sync + 'static,
     {
         self.add_scoped_internal::<T>(Scoped::from_construct(f), Some(name))
     }
@@ -680,7 +680,10 @@ mod tests {
         container.add_scoped(|| String::from("orange")).unwrap();
         container.add_singleton(12_usize).unwrap();
 
-        assert_eq!(Some(&String::from("orange")), container.get::<String>().as_deref());
+        assert_eq!(
+            Some(&String::from("orange")),
+            container.get::<String>().as_deref()
+        );
         assert_eq!(Some(&12_usize), container.get::<usize>().as_deref());
     }
 
@@ -690,8 +693,14 @@ mod tests {
         container.add_scoped_with_name("truthy", || true).unwrap();
         container.add_singleton_with_name("falsy", false).unwrap();
 
-        assert_eq!(Some(&true), container.get_with_name::<bool>("truthy").as_deref());
+        assert_eq!(
+            Some(&true),
+            container.get_with_name::<bool>("truthy").as_deref()
+        );
 
-        assert_eq!(Some(&false), container.get_with_name::<bool>("falsy").as_deref());
+        assert_eq!(
+            Some(&false),
+            container.get_with_name::<bool>("falsy").as_deref()
+        );
     }
 }

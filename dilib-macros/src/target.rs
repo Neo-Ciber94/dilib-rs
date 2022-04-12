@@ -30,6 +30,8 @@ impl Target {
 }
 
 impl Parse for Target {
+    // There is not actually a double ref
+    #[allow(clippy::clone_double_ref)]
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // TODO: Optimize with lookahead
         if let Ok(item_fn) = input.clone().parse() {
