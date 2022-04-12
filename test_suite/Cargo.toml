@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-dilib = { path = "../dilib", features=["derive"] }
+dilib = { path = "../dilib", features=["derive", "unstable_provide"] }
 
 [dev-dependencies]
 macrotest = "1.0.8"

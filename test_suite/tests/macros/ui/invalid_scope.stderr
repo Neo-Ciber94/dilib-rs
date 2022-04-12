@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> tests/macros/ui/invalid_scope.rs:3:1
+  |
+3 | #[provide(scope="invalid_scope")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: called `Result::unwrap()` on an `Err` value: "Invalid scope value: invalid_scope, expected 'singleton' or 'scoped'"

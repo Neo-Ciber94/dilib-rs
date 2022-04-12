@@ -16,7 +16,7 @@ impl<'a, 'b> dilib::Inject for StructWithLifeTimes<'a, 'b> {
             .expect("cannot get scoped value of type `Singleton<&usize>`");
         let c: &'static str = container
             .get_scoped()
-            .expect("cannot get scoped value of type `&'static str`");
+            .expect("cannot get scoped value of type `&\'static str`");
         StructWithLifeTimes { a, b, c }
     }
 }
