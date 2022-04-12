@@ -210,7 +210,7 @@ fn get_singleton_inject_provider(item_struct: &ItemStruct) -> TokenStream {
 
     quote! {
         dilib::Provider::Singleton(
-            dilib::Scoped::from_factory(|container: &dilib::Container| -> #struct_name {
+            dilib::Shared::new_lazy(|container: &dilib::Container| -> #struct_name {
                     <#struct_name as dilib::Inject> :: inject(container)
                 }
             )
