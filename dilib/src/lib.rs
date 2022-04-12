@@ -88,12 +88,6 @@ pub use shared::*;
 mod resolved;
 pub use resolved::*;
 
-/// Common errors for dilib.
-pub mod error;
-
-/// A representation of a rust type.
-pub(crate) mod typing;
-
 #[cfg(feature = "derive")]
 mod derive {
     extern crate dilib_derive;

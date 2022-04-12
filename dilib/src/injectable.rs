@@ -1,4 +1,3 @@
-use crate::error::ResolveError;
 use crate::Container;
 
 /// A trait for constructing a type getting the dependencies from a `Container`.
@@ -33,17 +32,34 @@ pub trait Inject {
     fn inject(container: &Container) -> Self;
 }
 
-/// A trait for attempt to construct a type getting the dependencies from a `Container`.
-pub trait TryInject: Sized {
-    /// Attempts to constructs this type using the `Container`.
-    fn try_inject(container: &Container) -> Result<Self, ResolveError>;
-}
-
-impl<I> Inject for I
-where
-    I: TryInject,
-{
-    fn inject(container: &Container) -> Self {
-        Self::try_inject(container).unwrap()
+impl<T: Default> Inject for T {
+    #[inline]
+    fn inject(_: &Container) -> Self {
+        Self::default()
     }
 }
+
+/*
+Is not decided yet if is necessary to have an `TryInject` trait.
+
+When creating an instance from `Inject` there is only 2 options:
+or create the instance or panic, is expected to be deterministic,
+if we allow the operation to fail with an `Err` this open some questions:
+
+- Why want an instance that may not be created?
+- In which cases no creating an instance is something that should not panic?
+- Why not just implement Inject to a `struct Fallible<T>(Result<T, Error>)`?
+*/
+
+// /// A trait for attempt to construct a type getting the dependencies from a `Container`.
+// pub trait TryInject: Sized {
+//     /// Attempts to constructs this type using the `Container`.
+//     fn try_inject(container: &Container) -> Result<Self, crate::error::ResolveError>;
+// }
+
+// impl<T: TryInject> Inject for T {
+//     #[inline]
+//     fn inject(container: &Container) -> Self {
+//         Self::try_inject(container).unwrap()
+//     }
+// }

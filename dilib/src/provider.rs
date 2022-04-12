@@ -60,8 +60,7 @@ impl<'a> Provider<'a> {
         match self {
             Provider::Scoped(scoped) => match scoped {
                 Scoped::Factory(_) => None,
-                Scoped::Inject(_) => scoped.call_inject(container),
-                Scoped::TryInject(_) => scoped.call_try_inject(container).ok(),
+                Scoped::Construct(_) => scoped.call_construct(container),
             },
             _ => None,
         }
