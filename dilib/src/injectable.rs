@@ -49,6 +49,8 @@ if we allow the operation to fail with an `Err` this open some questions:
 - Why want an instance that may not be created?
 - In which cases no creating an instance is something that should not panic?
 - Why not just implement Inject to a `struct Fallible<T>(Result<T, Error>)`?
+
+Checkout the related: `z_error.rs` and `z_typing.rs`
 */
 
 // /// A trait for attempt to construct a type getting the dependencies from a `Container`.
