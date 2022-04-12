@@ -183,11 +183,11 @@ fn get_target_constructor(input: &DeriveInput) -> Option<TargetConstructor> {
 
     // Check if the `#[inject(constructor="")]` are well formed
     for attr in &attributes {
-        if attr.len() != 1 || attr.path() != crate::strings::INJECT {
+        if attr.len() != 1 || attr.path() != crate::keys::INJECT {
             panic!("invalid inject constructor `{}`", attr);
         }
         if let Some(MetaItem::NameValue(s)) = attr.get(0) {
-            if s.name != crate::strings::CONSTRUCTOR {
+            if s.name != crate::keys::CONSTRUCTOR {
                 panic!("invalid inject constructor `{}`", attr);
             }
         }
@@ -280,12 +280,14 @@ fn get_singleton_type(ty: &Type) -> Option<Type> {
                 return None;
             }
 
-            // SAFETY: A type path should have at least 1 element
+            // SAFETY: path have at least 1 element
             let segment = type_path.path.segments.last().unwrap();
-            let ident = segment.ident.to_string();
+
+            // std::option::Option<String> this check the last `<String>`
+            let has_generics = !segment.arguments.is_empty();
 
             // Is `Singleton<T>` or `Arc<T>`
-            if (ident == "Singleton" || ident == "Arc") && !segment.arguments.is_empty() {
+            if is_singleton(ty) && has_generics {
                 if let PathArguments::AngleBracketed(bracketed) = &segment.arguments {
                     let generic_arg = bracketed.args.first().unwrap();
                     if let GenericArgument::Type(Type::Path(generic_type)) = generic_arg {
@@ -309,14 +311,14 @@ fn get_struct_kind(data_struct: &DataStruct) -> StructKind {
 }
 
 fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
-    use crate::strings;
+    use crate::keys;
 
     let attributes = field
         .attrs
         .iter()
         .cloned()
         .map(|attr| MacroAttribute::new(attr).unwrap())
-        .filter(|attr| attr.path() == strings::INJECT)
+        .filter(|attr| attr.path() == keys::INJECT)
         .collect::<Vec<_>>();
 
     if !attributes.is_empty() {
@@ -326,7 +328,7 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
             Ok(map) => {
                 for (name, value) in map {
                     match name.as_str() {
-                        strings::DEFAULT => {
+                        keys::DEFAULT => {
                             if let Some(default_value) = value {
                                 let lit =
                                     default_value.as_literal().cloned().unwrap_or_else(|| {
@@ -338,7 +340,7 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
                                 dependency.set_default_value(DefaultValue::Infer);
                             }
                         }
-                        strings::NAME => {
+                        keys::NAME => {
                             let s = value
                                 .as_ref()
                                 .cloned()
@@ -353,7 +355,7 @@ fn set_dependency_attributes(field: &Field, dependency: &mut Dependency) {
 
                             dependency.set_name(s);
                         }
-                        strings::SCOPE => {
+                        keys::SCOPE => {
                             let s = value.unwrap().to_string_literal().expect(
                                 "expected string literal for scope: `#[inject(scope=\"...\")]`",
                             );
@@ -393,5 +395,28 @@ fn panic_for_inject_error(error: InjectError, attr: &MacroAttribute) -> ! {
         InjectError::InvalidAttribute => {
             panic!("invalid attribute: {}", attr);
         }
+    }
+}
+
+fn is_singleton(ty: &syn::Type) -> bool {
+    fn is_singleton_internal(path: &[String]) -> bool {
+        let path_str = path.join("::");
+        match path_str.as_str() {
+            "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc" => true,
+            _ => false,
+        }
+    }
+
+    match ty {
+        syn::Type::Path(syn::TypePath { path, .. }) => {
+            let segments = path
+                .segments
+                .iter()
+                .map(|segment| segment.ident.to_string())
+                .collect::<Vec<_>>();
+
+            is_singleton_internal(&segments)
+        }
+        _ => false,
     }
 }

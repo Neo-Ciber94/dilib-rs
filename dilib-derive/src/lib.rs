@@ -1,7 +1,7 @@
 mod constructor;
 mod dependency;
 mod helpers;
-mod strings;
+mod keys;
 mod target;
 mod utils;
 
@@ -10,7 +10,7 @@ use proc_macro::TokenStream;
 
 /// Provides an implementation of the `Inject` trait for the given type.
 ///
-/// # Customization
+/// # Configuration
 /// You can use `#[inject]` on the fields to configure how the values are injected.
 ///
 /// - `#[inject(name="name")]`: To get a named dependency.

@@ -10,14 +10,6 @@ pub enum Target {
 }
 
 impl Target {
-    // pub fn is_function(&self) -> bool {
-    //     matches!(self, Target::Fn(_))
-    // }
-    //
-    // pub fn is_struct(&self) -> bool {
-    //     matches!(self, Target::Struct(_))
-    // }
-
     pub fn target_type(&self) -> Box<syn::Type> {
         match &self {
             Target::Fn(item_fn) => match item_fn.sig.output.clone() {

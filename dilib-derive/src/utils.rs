@@ -1,4 +1,4 @@
-use crate::strings;
+use crate::keys;
 use mattro::{MacroAttribute, MetaItem, NameValue, Value};
 use std::collections::HashMap;
 
@@ -27,14 +27,14 @@ pub fn convert_to_inject_attribute_map(
     for meta_item in attribute.iter() {
         match meta_item {
             MetaItem::Path(path) => {
-                if path == strings::DEFAULT {
+                if path == keys::DEFAULT {
                     add_item(path, None)?;
                 }
             }
             MetaItem::NameValue(NameValue { name, value }) => match name.as_str() {
-                strings::DEFAULT => add_item(name, Some(value))?,
-                strings::SCOPE => add_item(name, Some(value))?,
-                strings::NAME => add_item(name, Some(value))?,
+                keys::DEFAULT => add_item(name, Some(value))?,
+                keys::SCOPE => add_item(name, Some(value))?,
+                keys::NAME => add_item(name, Some(value))?,
                 _ => return Err(InjectError::InvalidKey(name.clone())),
             },
             _ => {
