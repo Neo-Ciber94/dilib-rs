@@ -25,12 +25,14 @@ pub fn token_stream_to_string_non_whitespace(tokens: &proc_macro2::TokenStream) 
             if let Some(lifetime) = tokens.get(index + 1) {
                 // Check if is a `'lifetime` and not a char reference.
                 if lifetime.starts_with('\'') && !lifetime.ends_with('\'') {
-                    if lifetime == "'static" {
-                        result.push_str("&'static ");
-                    } else {
-                        result.push('&');
-                    }
+                    // FIXME: Using 'static is breaking CI tests because is adding \' to the lifetime, instead of just '
+                    // if lifetime == "'static" {
+                    //     result.push_str("&'static ");
+                    // } else {
+                    //     result.push('&');
+                    // }
 
+                    result.push('&');
                     index += 2;
                 }
             }

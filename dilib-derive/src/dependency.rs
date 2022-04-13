@@ -165,3 +165,16 @@ pub enum TargetField {
     Named(Ident),
     Unnamed(usize),
 }
+
+#[cfg(test)]
+mod tests {
+    use std::any::TypeId;
+
+    #[test]
+    fn str_and_static_test() {
+        // To ensure we don't broke derive macro
+        let t1 = TypeId::of::<&str>();
+        let t2 = TypeId::of::<&'static str>();
+        assert_eq!(t1, t2);
+    }
+}
