@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, Copy)]
 pub enum Scope {
     Singleton,
@@ -10,10 +9,7 @@ impl Scope {
         match s {
             "singleton" => Scope::Singleton,
             "scoped" => Scope::Scoped,
-            _ => panic!(
-                "Invalid scope value: {}, expected 'singleton' or 'scoped'",
-                s
-            ),
+            _ => panic!("Invalid scope: '{}', expected 'singleton' or 'scoped'", s),
         }
     }
 }

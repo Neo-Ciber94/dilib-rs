@@ -9,5 +9,5 @@ publish = false
 dilib = { path = "../dilib", features=["derive", "unstable_provide"] }
 
 [dev-dependencies]
-macrotest = "1.0.8"
+macrotest = "=1.0.0"
 trybuild = { version = "1.0.59", features = ["diff"] }

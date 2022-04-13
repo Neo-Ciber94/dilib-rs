@@ -2,6 +2,7 @@ mod provide_attr;
 mod resolve_fn_arg;
 mod scope;
 mod target;
+mod utils;
 
 use crate::provide_attr::ProvideAttribute;
 use proc_macro::TokenStream;

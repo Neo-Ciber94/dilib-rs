@@ -1,7 +1,7 @@
 use dilib::{Inject, Singleton, provide};
 
 #[derive(Inject)]
-#[inject(scope="singleton", named = "point")]
+#[provide(scope="singleton", name = "point")]
 struct MyData {
     s: Singleton<String>
 }

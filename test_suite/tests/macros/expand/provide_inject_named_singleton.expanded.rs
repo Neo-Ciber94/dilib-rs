@@ -1,5 +1,35 @@
 use dilib::{Inject, Singleton, provide};
-#[inject(scope = "singleton", named = "point")]
+const _: () = {
+    #[cold]
+    #[doc(hidden)]
+    #[allow(non_snake_case)]
+    #[allow(dead_code)]
+    #[ctor::ctor]
+    fn dilib_MyData_MyData() {
+        let mut lock = dilib::global::PROVIDERS
+            .lock()
+            .expect("unable to get providers lock");
+        let providers = lock.as_mut().expect("unable to get providers");
+        providers.push(dilib::global::InjectProvider {
+            key: dilib::InjectionKey::with_name::<MyData>("point"),
+            provider: dilib::Provider::Singleton(dilib::Shared::new_lazy(
+                |container: &dilib::Container| -> MyData {
+                    <MyData as dilib::Inject>::inject(container)
+                },
+            )),
+        });
+    }
+};
 struct MyData {
     s: Singleton<String>,
+}
+impl dilib::Inject for MyData {
+    #[allow(unused)]
+    #[allow(dead_code)]
+    fn inject(container: &dilib::Container) -> Self {
+        let s: dilib::Singleton<String> = container
+            .get_singleton()
+            .expect("cannot get singleton value of type `String`");
+        MyData { s }
+    }
 }

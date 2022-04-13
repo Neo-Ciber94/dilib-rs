@@ -1,3 +1,4 @@
+use crate::utils::format_tokens;
 use mattro::{MacroAttribute, MetaItem};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
@@ -140,7 +141,10 @@ fn get_singleton_inner_type(ty: &syn::Type) -> Box<syn::Type> {
 fn is_singleton(ty: &syn::Type) -> bool {
     fn is_singleton_internal(path: &[String]) -> bool {
         let path_str = path.join("::");
-        matches!(path_str.as_str(), "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc")
+        matches!(
+            path_str.as_str(),
+            "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc"
+        )
     }
 
     match ty {
@@ -187,16 +191,4 @@ fn get_inject_name(attr: &[Attribute]) -> Option<String> {
         }
         None => None,
     }
-}
-
-fn format_tokens<T>(tokens: &T) -> String
-where
-    T: ToTokens,
-{
-    tokens
-        .to_token_stream()
-        .into_iter()
-        .flat_map(|t| t.to_string().chars().collect::<Vec<char>>())
-        .filter(|c| !c.is_whitespace())
-        .collect::<String>()
 }

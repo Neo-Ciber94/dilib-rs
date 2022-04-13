@@ -401,7 +401,10 @@ fn panic_for_inject_error(error: InjectError, attr: &MacroAttribute) -> ! {
 fn is_singleton(ty: &syn::Type) -> bool {
     fn is_singleton_internal(path: &[String]) -> bool {
         let path_str = path.join("::");
-        matches!(path_str.as_str(), "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc")
+        matches!(
+            path_str.as_str(),
+            "Singleton" | "Arc" | "dilib::Singleton" | "std::sync::Arc" | "sync::Arc"
+        )
     }
 
     match ty {

@@ -1,7 +1,7 @@
 error: custom attribute panicked
  --> tests/macros/ui/invalid_scope.rs:3:1
   |
-3 | #[provide(scope="invalid_scope")]
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3 | #[provide(scope="global")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: Invalid scope value: invalid_scope, expected 'singleton' or 'scoped'
+  = help: message: Invalid scope: 'global', expected 'singleton' or 'scoped'

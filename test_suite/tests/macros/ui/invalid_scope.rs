@@ -1,6 +1,6 @@
 use dilib::provide;
 
-#[provide(scope="invalid_scope")]
+#[provide(scope="global")]
 fn get_string() -> String {
     "hello".to_string()
 }

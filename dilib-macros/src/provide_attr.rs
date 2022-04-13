@@ -1,6 +1,7 @@
 use crate::resolve_fn_arg::ResolvedFnArg;
 use crate::scope::Scope;
 use crate::target::Target;
+use crate::utils::format_tokens;
 use mattro::{MacroAttribute, Value};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
@@ -105,14 +106,19 @@ impl ProvideAttribute {
         let ctor_name = generate_fn_name(&ty, &target);
 
         quote! {
-            #[cold]
-            #[doc(hidden)]
-            #[ctor::ctor]
-            fn #ctor_name() {
-                #add_provider
-            }
+            // We hide the generated function
+            const _: () = {
+                #[cold]
+                #[doc(hidden)]
+                #[allow(non_snake_case)]
+                #[allow(dead_code)]
+                #[ctor::ctor]
+                fn #ctor_name() {
+                    #add_provider
+                }
+            };
 
-            #[allow(dead_code)]
+            // Let the rest of the code the same
             #target
         }
     }
@@ -216,23 +222,37 @@ fn get_singleton_inject_provider(item_struct: &ItemStruct) -> TokenStream {
 }
 
 fn generate_fn_name(ty: &syn::Type, target: &Target) -> syn::Ident {
+    fn sanitize_type_name<T: ToTokens>(t: &T) -> String {
+        let mut tokens = format_tokens(t)
+            .chars()
+            .map(|c| match c {
+                'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => c,
+                _ => '_',
+            })
+            .collect::<Vec<char>>();
+
+        if tokens.len() == 1 && tokens[0] == '_' {
+            return String::new();
+        }
+
+        // Adds the separator <name>_<type>
+        tokens.insert(0, '_');
+        tokens.dedup();
+        let s = tokens.into_iter().collect::<String>();
+        s.trim_end_matches('_').to_string()
+    }
+
     let name = match target {
-        Target::Fn(item_fn) => item_fn.sig.ident.clone(),
-        Target::Struct(item_struct) => item_struct.ident.clone(),
+        Target::Fn(item_fn) => item_fn.sig.ident.to_string(),
+        Target::Struct(item_struct) => item_struct.ident.to_string(),
     };
 
-    let type_name = ty
-        .to_token_stream()
-        .into_iter()
-        .flat_map(|t| t.to_string().chars().collect::<Vec<char>>())
-        .filter(|c| c.is_whitespace())
-        .map(|c| match c {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '_' => c,
-            _ => '_',
-        })
-        .collect::<String>();
+    let type_name = sanitize_type_name(ty);
 
-    let uuid = uuid::Uuid::new_v4().to_simple().to_string();
-    let name = format!("{}_{}_{}", name, type_name, uuid);
+    /*
+    The generated function name will be in the form `dilib_<name>_<return_type>`.
+        Example: fn dilib_get_data_string() -> String
+    */
+    let name = format!("dilib_{}{}", name, type_name);
     syn::Ident::new(&name, Span::call_site())
 }
