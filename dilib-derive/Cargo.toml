@@ -1,7 +1,7 @@
 [package]
 name = "dilib-derive"
 description = "Derive proc_macros for the dilib crate"
-version = "0.1.0-alpha"
+version = "0.2.0-alpha"
 authors = ["Freddy L."]
 edition = "2021"
 license-file = "LICENSE"

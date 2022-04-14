@@ -1,3 +1,5 @@
+
+#[cfg(nightly)]
 #[test]
 fn main() {
     let t = trybuild::TestCases::new();

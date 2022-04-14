@@ -4,6 +4,7 @@ version = "0.0.0"
 authors = ["Freddy L."]
 edition = "2018"
 publish = false
+build = "build.rs"
 rust-version = "1.59.0"
 
 [dependencies]
