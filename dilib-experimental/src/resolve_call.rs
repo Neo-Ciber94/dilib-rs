@@ -39,8 +39,8 @@ impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L);
 impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M);
 impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
-impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_resolve_call_fn!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+
 // impl<Out, A> ResolveCall for Box<dyn Fn(&A) -> Out>
 // where
 //     A: Send + Sync + 'static,

@@ -34,7 +34,7 @@ fn main() {
         // Adds other dependencies to the container here
     }).unwrap();
 
-    let repository = resolve!(trait Repository<User>).expect("unable to get UserRepository");
+    let repository = resolve!(trait Repository<User>).expect("unable to get an impl of Repository<User>");
     repository.add(User { name: "Marie", email: "marie@example.com" });
     repository.add(User { name: "Natasha", email: "natasha@example.com" });
 

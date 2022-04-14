@@ -6,18 +6,6 @@ error[E0433]: failed to resolve: use of undeclared crate or module `ctor`
   |
   = note: this error originates in the attribute macro `provide` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0601]: `main` function not found in crate `$CRATE`
- --> tests/macros/ui/derive_provide_order.rs:1:1
-  |
-1 | / use dilib::{provide, Inject};
-2 | |
-3 | | #[provide]
-4 | | #[derive(Inject)]
-5 | | struct MyStruct {
-6 | |     field: u32,
-7 | | }
-  | |_^ consider adding a `main` function to `$DIR/tests/macros/ui/derive_provide_order.rs`
-
 error[E0277]: the trait bound `MyStruct: Default` is not satisfied
  --> tests/macros/ui/derive_provide_order.rs:3:1
   |
