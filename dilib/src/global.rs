@@ -70,6 +70,7 @@ impl GlobalContainer {
     }
 
     // This method should never be exposed, global container should be read-only after initialization
+    #[allow(dead_code)]
     fn get_mut(&self) -> Option<&'static mut Container<'static>> {
         match self.state.load(Ordering::SeqCst) {
             INITIALIZED => unsafe { Some(&mut *self.container.load(Ordering::SeqCst)) },

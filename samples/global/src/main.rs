@@ -1,7 +1,9 @@
 use std::sync::RwLock;
-use dilib::{resolve, provide, Singleton, Inject, global::init_container};
+use dilib::global::init_container;
+use dilib::{resolve, Singleton, Inject, provide};
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
 struct User {
     name: &'static str,
     email: &'static str,
@@ -20,8 +22,8 @@ struct Db(RwLock<Vec<User>>);
 #[provide(bind="Repository<User>")]
 struct UserRepository(Singleton<Db>);
 impl Repository<User> for UserRepository {
-    fn add(&self, user: User) {
-        self.0.0.write().unwrap().push(user);
+    fn add(&self, item: User) {
+        self.0.0.write().unwrap().push(item);
     }
 
     fn get_all(&self) -> Vec<User> {
@@ -30,14 +32,17 @@ impl Repository<User> for UserRepository {
 }
 
 fn main() {
+    // Initialize the container to register the providers
     init_container(|_container| {
-        // Adds other dependencies to the container here
+        // Add additional providers
     }).unwrap();
 
-    let repository = resolve!(trait Repository<User>).expect("unable to get an impl of Repository<User>");
-    repository.add(User { name: "Marie", email: "marie@example.com" });
-    repository.add(User { name: "Natasha", email: "natasha@example.com" });
+    let user_repository = resolve!(trait Repository<User>).unwrap();
+    user_repository.add(User { name: "Marie", email: "marie@example.com" });
+    user_repository.add(User { name: "Natasha", email: "natasha@example.com" });
 
-    let users = repository.get_all();
+    let users = user_repository.get_all();
+    let db = resolve!(Db).unwrap();
+    println!("Total users: {}", db.0.read().unwrap().len());
     println!("{:#?}", users);
 }

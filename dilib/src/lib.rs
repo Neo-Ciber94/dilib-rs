@@ -1,3 +1,4 @@
+// Include docs
 #![doc = include_str!("../../README.md")]
 
 mod lib_macros;

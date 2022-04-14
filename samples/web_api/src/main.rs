@@ -10,7 +10,7 @@ use crate::repositories::{in_memory::InMemoryRepository, Repository};
 use crate::services::audit_log_service::AuditLogService;
 use actix_web::middleware;
 use actix_web::{web, App, HttpServer};
-use dilib::{register_scoped_trait, Container};
+use dilib::{add_scoped_trait, Container};
 use entities::audit_log::AuditLog;
 use uuid::Uuid;
 
@@ -54,9 +54,9 @@ fn create_container() -> Container<'static> {
     let mut container = Container::new();
 
     // Scoped
-    register_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+    add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
         .unwrap();
-    register_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+    add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
         .unwrap();
     container.add_deps::<AuditLogService>().unwrap();
 
