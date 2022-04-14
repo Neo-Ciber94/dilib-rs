@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Freddy L."]
 edition = "2018"
 publish = false
+rust-version = "1.59.0"
 
 [dependencies]
 dilib = { path = "../dilib", features=["derive", "unstable_provide"] }

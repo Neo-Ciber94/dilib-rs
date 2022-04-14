@@ -2,6 +2,7 @@
 name = "dilib-macros"
 version = "0.1.0-alpha"
 edition = "2021"
+rust-version = "1.59.0"
 
 [lib]
 proc_macro = true

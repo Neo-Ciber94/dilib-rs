@@ -462,6 +462,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dilib-experimental"
+version = "0.1.0"
+dependencies = [
+ "dilib",
+]
+
+[[package]]
 name = "dilib-macros"
 version = "0.1.0-alpha"
 dependencies = [
