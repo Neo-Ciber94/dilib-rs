@@ -84,9 +84,9 @@ impl_resolve_call_fn!(mut A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Mutex;
-    use dilib::Container;
     use crate::resolve_call::{ResolveCall, ResolveCallMut};
+    use dilib::Container;
+    use std::sync::Mutex;
 
     #[test]
     fn resolve_call_test_1() {
@@ -118,7 +118,6 @@ mod tests {
 
     #[test]
     fn resolve_call_mut_test_1() {
-
         let mut repeater = |a: &String| {
             return a.repeat(2);
         };

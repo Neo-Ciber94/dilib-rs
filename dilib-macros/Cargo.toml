@@ -1,6 +1,8 @@
 [package]
 name = "dilib-macros"
+description = "Procedural macros for the dilib crate"
 version = "0.2.0-alpha"
+license-file = "LICENSE"
 edition = "2021"
 rust-version = "1.59.0"
 
@@ -17,4 +19,3 @@ const_format = "0.2.22"
 [dev-dependencies]
 dilib = { path = "../dilib", features=["full", "unstable_provide"] }
 ctor = "0.1.3"
-once_cell = "1.10.0"

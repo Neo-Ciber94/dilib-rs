@@ -226,7 +226,11 @@ fn get_scoped_provider(item_fn: &ItemFn, bind: Option<&syn::Type>) -> TokenStrea
     }
 }
 
-fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &syn::Type, bind: Option<&syn::Type>) -> TokenStream {
+fn get_resolved_scoped_provider(
+    item_fn: &ItemFn,
+    ty: &syn::Type,
+    bind: Option<&syn::Type>,
+) -> TokenStream {
     let fn_name = item_fn.sig.ident.clone();
     let resolved_args = ResolvedFnArg::from_fn(item_fn);
     let arg_names = resolved_args
@@ -275,7 +279,11 @@ fn get_singleton_provider(item_fn: &ItemFn, bind: Option<&syn::Type>) -> TokenSt
     }
 }
 
-fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &syn::Type, bind: Option<&syn::Type>) -> TokenStream {
+fn get_resolved_singleton_provider(
+    item_fn: &ItemFn,
+    ty: &syn::Type,
+    bind: Option<&syn::Type>,
+) -> TokenStream {
     let fn_name = item_fn.sig.ident.clone();
     let resolved_args = ResolvedFnArg::from_fn(item_fn);
     let arg_names = resolved_args
@@ -328,7 +336,10 @@ fn get_inject_provider(item_struct: &ItemStruct, bind: Option<&syn::Type>) -> To
     }
 }
 
-fn get_singleton_inject_provider(item_struct: &ItemStruct, bind: Option<&syn::Type>) -> TokenStream {
+fn get_singleton_inject_provider(
+    item_struct: &ItemStruct,
+    bind: Option<&syn::Type>,
+) -> TokenStream {
     let struct_name = item_struct.ident.clone();
 
     if let Some(bind) = bind {

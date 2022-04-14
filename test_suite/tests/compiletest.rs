@@ -1,4 +1,3 @@
-
 #[cfg(nightly)]
 #[test]
 fn main() {

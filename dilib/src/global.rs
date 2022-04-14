@@ -232,7 +232,7 @@ macro_rules! resolve {
 #[cfg(test)]
 mod tests {
     use crate::global::{get_container, init_container, GlobalContainer};
-    use crate::{register_scoped_trait, register_singleton_trait};
+    use crate::{add_scoped_trait, add_singleton_trait};
     use std::sync::Mutex;
 
     pub trait Greeter {
@@ -260,8 +260,8 @@ mod tests {
                 .add_scoped(|| String::from("Hello World"))
                 .unwrap();
             container.add_singleton(Mutex::new(5_i32)).unwrap();
-            register_singleton_trait!(container, Greeter => EnglishGreeter).unwrap();
-            register_scoped_trait!(container, "es", Greeter => SpanishGreeter).unwrap();
+            add_singleton_trait!(container, Greeter => EnglishGreeter).unwrap();
+            add_scoped_trait!(container, "es", Greeter => SpanishGreeter).unwrap();
         })
         .unwrap();
 
