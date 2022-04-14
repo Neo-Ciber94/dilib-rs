@@ -19,8 +19,18 @@ jobs:
       - run: cd dilib && cargo test --all-features --verbose
 
   test_suite:
-    name: Test Suite
+    name: Test Suite (linux)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-expand --verbose
+      - run: cd test_suite && cargo build --all-features --verbose
+      - run: cd test_suite && cargo test --all-features --verbose
+
+  windows:
+    name: Test Suite (windows)
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
