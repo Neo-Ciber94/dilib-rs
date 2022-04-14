@@ -23,6 +23,18 @@ macro_rules! impl_resolve_call_fn {
             }
         }
     };
+
+    (mut $($t:ident),+) => {
+        impl<Out, $($t),+> ResolveCallMut for Box<dyn FnMut($(&$t),+) -> Out>
+         where $($t: Send + Sync + 'static),+ {
+            type Output = Out;
+            fn resolve_call_mut(&mut self, container: &Container) -> Self::Output {
+                (self)(
+                    $(container.get::<$t>().unwrap().as_ref()),+
+                )
+            }
+        }
+    };
 }
 
 impl_resolve_call_fn!(A);
