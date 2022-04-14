@@ -1,11 +1,15 @@
+use crate::keys;
 use crate::utils::format_tokens;
 use mattro::{MacroAttribute, MetaItem};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{ItemFn, PathArguments};
 
-const INVALID_SIGNATURE: &str =
-    "invalid #[inject] signature, expected: #[inject(arg, name = \"value\")]";
+const INVALID_SIGNATURE: &str = const_format::formatcp!(
+    "invalid #[{0}] signature, expected: #[{0}(param, {1} = \"value\")]",
+    keys::INJECT,
+    keys::NAME
+);
 
 pub struct ResolvedFnArg {
     pub name: Option<String>,
@@ -44,10 +48,10 @@ impl ResolvedFnArg {
             .iter()
             .cloned()
             .filter_map(|att| MacroAttribute::new(att).ok())
-            .filter(|att| att.path() == "inject")
+            .filter(|att| att.path() == keys::INJECT)
             .collect::<Vec<_>>();
 
-        if attrs.len() > 1 {
+        if attrs.len() > 0 {
             for attr in attrs.iter() {
                 let arg = match attr.get(0) {
                     Some(MetaItem::Path(path)) => path.clone(),
@@ -60,7 +64,7 @@ impl ResolvedFnArg {
                             let name = &x.name;
                             let value = &x.value;
 
-                            if name != "name" {
+                            if name != keys::NAME {
                                 panic!("{}", INVALID_SIGNATURE);
                             }
 

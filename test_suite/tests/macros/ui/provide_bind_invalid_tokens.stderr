@@ -1,0 +1,19 @@
+error: custom attribute panicked
+ --> tests/macros/ui/provide_bind_invalid_tokens.rs:4:1
+  |
+4 | #[provide(bind=123)]
+  | ^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: #[provide] 'bind' must be a string literal
+
+error[E0412]: cannot find type `MyStruct` in this scope
+ --> tests/macros/ui/provide_bind_invalid_tokens.rs:3:10
+  |
+3 | #[derive(Default)]
+  |          ^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `MyStruct` in this scope
+ --> tests/macros/ui/provide_bind_invalid_tokens.rs:3:10
+  |
+3 | #[derive(Default)]
+  |          ^^^^^^^ not found in this scope

@@ -1,12 +1,17 @@
 /// Helper macro to bind a `trait` to it's implementation in a `Container` as scoped.
 ///
-/// # Usage
-/// `register_scoped_trait!(container, name, trait, implementation)`
+/// # Overloads
+/// - `register_scoped_trait!(container, name, trait => implementation)`
+/// - `register_scoped_trait!(container, trait => implementation)`
+/// - `register_scoped_trait!(container, name, trait @ Inject)`
+/// - `register_scoped_trait!(container, trait @ Inject)`
 ///
+/// # Params
 /// - `container`: identifier of the container to add the implementation.
 /// - `name`: optional name to store the provider.
 /// - `trait`: the type of the trait.
-/// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
+/// - `implementation`: the implementation of the trait.
+/// - `Inject`: a struct that implements [`Inject`].
 ///
 /// # Examples
 /// ## Basic usage
@@ -27,7 +32,7 @@
 /// }
 /// fn main () {
 ///     let mut container = Container::new();
-///     register_scoped_trait!(container, Greet, EnglishGreeting).unwrap();
+///     register_scoped_trait!(container, Greet => EnglishGreeting).unwrap();
 ///
 ///     let greeting = get_scoped_trait!(container, Greet).unwrap();
 ///     assert_eq!(greeting.greet(), "Hello");
@@ -60,8 +65,8 @@
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_scoped_trait!(container, "hello", Greet, Hello).unwrap();
-///     register_scoped_trait!(container, "bye", Greet, { Bye }).unwrap();
+///     register_scoped_trait!(container, "hello", Greet => Hello).unwrap();
+///     register_scoped_trait!(container, "bye", Greet => { Bye }).unwrap();
 ///
 ///     // Returns a `Box<dyn Greet>`
 ///     let hello = get_scoped_trait!(container, Greet, "hello").unwrap();
@@ -73,7 +78,7 @@
 /// ```
 #[macro_export]
 macro_rules! register_scoped_trait {
-    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{
         $container.add_scoped(|| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
             let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
                 let value = $impl_expr;
@@ -84,7 +89,7 @@ macro_rules! register_scoped_trait {
         })
     }};
 
-    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{
         $container.add_scoped_with_name($name, || -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
             let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
                 let value = $impl_expr;
@@ -95,12 +100,34 @@ macro_rules! register_scoped_trait {
         })
     }};
 
-    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => { $impl_expr:expr }) => {{
         $crate::register_scoped_trait!($container, $trait_type $(<$($generic),+>)?, $impl_expr);
     }};
 
-    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? => { $impl_expr:expr }) => {{
         $crate::register_scoped_trait!($container, $trait_type $(<$($generic),+>)?, $name, $impl_expr);
+    }};
+
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
+        $container.add_deps_fn(|container| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
+            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
+                let value = <$inject_type>::inject(container);
+                std::boxed::Box::new(value)
+            };
+
+            ret
+        })
+    }};
+
+     ($container:ident,  $name:literal,, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
+        $container.add_deps_fn_with_name($name, |container| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
+            let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
+                let value = <$inject_type>::inject(container);
+                std::boxed::Box::new(value)
+            };
+
+            ret
+        })
     }};
 }
 
@@ -127,13 +154,18 @@ macro_rules! get_scoped_trait {
 
 /// Helper macro to bind a `trait` to it's implementation in a `Container` as a singleton.
 ///
-/// # Usage
-/// `register_singleton_trait!(container, name, trait, implementation)`
+/// # Overloads
+/// `register_singleton_trait!(container, name, trait => implementation)`
+/// `register_singleton_trait!(container, trait => implementation)`
+/// `register_singleton_trait!(container, name, trait @ Inject)`
+/// `register_singleton_trait!(container, trait @ Inject)`
 ///
+/// # Params
 /// - `container`: identifier of the container to add the implementation.
 /// - `name`: optional name to store the provider.
 /// - `trait`: the type of the trait.
-/// - `implementation`: the implementation of the trait. This can use `{ implementation }` brackets.
+/// - `implementation`: the implementation of the trait.
+/// - `Inject`: a struct that implements [`Inject`].
 ///
 /// # Examples
 ///
@@ -156,7 +188,7 @@ macro_rules! get_scoped_trait {
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_singleton_trait!(container, Greet, HelloWorld).unwrap();
+///     register_singleton_trait!(container, Greet => HelloWorld).unwrap();
 ///
 ///     let greet = get_singleton_trait!(container, Greet).unwrap();
 ///     assert_eq!(greet.greet(), "hello world");
@@ -186,8 +218,8 @@ macro_rules! get_scoped_trait {
 ///
 /// fn main() {
 ///     let mut container = Container::new();
-///     register_singleton_trait!(container, "sum", BinaryOp, Sum).unwrap();
-///     register_singleton_trait!(container, "prod", BinaryOp, Prod).unwrap();
+///     register_singleton_trait!(container, "sum", BinaryOp => Sum).unwrap();
+///     register_singleton_trait!(container, "prod", BinaryOp => Prod).unwrap();
 ///
 ///     let sum = get_singleton_trait!(container, BinaryOp, "sum").unwrap();
 ///     let prod = get_singleton_trait!(container, BinaryOp, "prod").unwrap();
@@ -198,24 +230,52 @@ macro_rules! get_scoped_trait {
 /// ```
 #[macro_export]
 macro_rules! register_singleton_trait {
-    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton::<std::boxed::Box<SafeTrait>>(x)
     }};
 
-    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, $impl_expr:expr) => {{
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{
         type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
         let x: std::boxed::Box<SafeTrait> = Box::new($impl_expr);
         $container.add_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, x)
     }};
 
-    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => { $impl_expr:expr }) => {{
         $crate::register_singleton_trait!($container, $trait_type $(<$($generic),+>)?, $impl_expr);
     }};
 
-    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)?, { $impl_expr:expr }) => {{
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? => { $impl_expr:expr }) => {{
         $crate::register_singleton_trait!($container, $trait_type $(<$($generic),+>)?, $name: literal, $impl_expr);
+    }};
+
+    ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
+        #[cfg(feature = "lazy")]
+        {
+            type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
+            $container.add_lazy_singleton::<std::boxed::Box<SafeTrait>>(|container| {
+                let ret: std::boxed::Box<SafeTrait> = Box::new($inject_type);
+                ret
+            })
+        }
+
+        #cfg(not(feature="lazy"))
+        panic!("`lazy` feature is not enabled. Please enable it to use this feature.");
+    }};
+
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
+        #[cfg(feature = "lazy")]
+        {
+            type SafeTrait = dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static;
+            $container.add_lazy_singleton_with_name::<std::boxed::Box<SafeTrait>>($name, |container| {
+                let ret: std::boxed::Box<SafeTrait> = Box::new($inject_type);
+                ret
+            })
+        }
+
+        #cfg(not(feature="lazy"))
+        panic!("`lazy` feature is not enabled. Please enable it to use this feature.");
     }};
 }
 
@@ -261,7 +321,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_1() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10)).unwrap();
+        register_scoped_trait!(container, Gen1<i32> => Gen1Impl::<i32>(10)).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen1<i32>).unwrap();
     }
@@ -269,7 +329,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_2() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false))
+        register_scoped_trait!(container, Gen2<i32, bool> => Gen2Impl::<i32, bool>(10, false))
             .unwrap();
 
         let _ret = get_scoped_trait!(container, Gen2<i32, bool>).unwrap();
@@ -278,7 +338,7 @@ mod tests {
     #[test]
     fn compile_get_scoped_trait_test_3() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen3<i32, bool, String>, Gen3Impl::<i32, bool, String>(10, false, String::from("test"))).unwrap();
+        register_scoped_trait!(container, Gen3<i32, bool, String> => Gen3Impl::<i32, bool, String>(10, false, String::from("test"))).unwrap();
 
         let _ret = get_scoped_trait!(container, Gen3<i32, bool, String>).unwrap();
     }
@@ -286,8 +346,8 @@ mod tests {
     #[test]
     fn compile_get_resolved_trait() {
         let mut container = Container::new();
-        register_scoped_trait!(container, Gen1<i32>, Gen1Impl::<i32>(10)).unwrap();
-        register_singleton_trait!(container, Gen2<i32, bool>, Gen2Impl::<i32, bool>(10, false))
+        register_scoped_trait!(container, Gen1<i32> => Gen1Impl::<i32>(10)).unwrap();
+        register_singleton_trait!(container, Gen2<i32, bool> => Gen2Impl::<i32, bool>(10, false))
             .unwrap();
 
         let _r1 = get_resolved_trait!(container, Gen1<i32>).unwrap();

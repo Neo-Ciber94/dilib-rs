@@ -1,0 +1,16 @@
+error[E0433]: failed to resolve: use of undeclared crate or module `ctor`
+ --> tests/macros/ui/provide_struct_no_inject.rs:3:1
+  |
+3 | #[provide]
+  | ^^^^^^^^^^ use of undeclared crate or module `ctor`
+  |
+  = note: this error originates in the attribute macro `provide` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `MyStruct: Default` is not satisfied
+ --> tests/macros/ui/provide_struct_no_inject.rs:3:1
+  |
+3 | #[provide]
+  | ^^^^^^^^^^ the trait `Default` is not implemented for `MyStruct`
+  |
+  = note: required because of the requirements on the impl of `Inject` for `MyStruct`
+  = note: this error originates in the attribute macro `provide` (in Nightly builds, run with -Z macro-backtrace for more info)

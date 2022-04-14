@@ -18,7 +18,7 @@ rustdoc-args = ["--cfg", "doc_cfg"]
 # Nothing by default
 default=[]
 
-# All features excluting unstables
+# All features excluding unstables
 full = ["derive", "global", "lazy"]
 
 # Enables #[derive(Inject)] proc macro

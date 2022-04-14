@@ -1,3 +1,4 @@
+use crate::keys;
 use crate::resolve_fn_arg::ResolvedFnArg;
 use crate::scope::Scope;
 use crate::target::Target;
@@ -6,52 +7,78 @@ use mattro::{MacroAttribute, Value};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::collections::HashMap;
-use syn::{AttrStyle, AttributeArgs, ItemFn, ItemStruct, ReturnType};
+use syn::{AttrStyle, AttributeArgs, ItemFn, ItemStruct, ReturnType, Type};
 
 #[derive(Debug)]
 pub struct ProvideAttribute {
     name: Option<String>,
     scope: Scope,
     target: Target,
+    bind: Option<Box<Type>>,
 }
 
 impl ProvideAttribute {
     pub fn new(attr: AttributeArgs, target: Target) -> Self {
-        let attr = MacroAttribute::from_attribute_args("provide", attr, AttrStyle::Outer);
+        let attr = MacroAttribute::from_attribute_args(keys::PROVIDE, attr, AttrStyle::Outer);
 
         let name_value_attr = attr
             .into_name_values()
-            .expect("#[provide] have invalid arguments");
+            .unwrap_or_else(|_| panic!("#[{}] have invalid arguments", keys::PROVIDE));
 
         let mut map = name_value_attr
             .into_iter()
             .collect::<HashMap<String, Value>>();
 
-        let name = map.remove_entry("name").map(|(_, value)| {
-            value
-                .to_string_literal()
-                .expect("#[provide] 'name' must be a string literal")
+        let name = map.remove_entry(keys::NAME).map(|(_, value)| {
+            value.to_string_literal().unwrap_or_else(|| {
+                panic!(
+                    "#[{}] '{}' must be a string literal",
+                    keys::PROVIDE,
+                    keys::NAME
+                )
+            })
         });
 
         let scope = map
             .remove_entry("scope")
             .map(|(_, value)| {
-                value
-                    .to_string_literal()
-                    .expect("#[provide] 'scope' must be a string literal")
+                value.to_string_literal().unwrap_or_else(|| {
+                    panic!(
+                        "#[{}] '{}' must be a string literal",
+                        keys::PROVIDE,
+                        keys::SCOPE
+                    )
+                })
             })
             .map(|s| Scope::from_str(&s))
             .unwrap_or(Scope::Scoped);
 
+        let bind = map.remove_entry(keys::BIND).map(|(_, value)| {
+            let type_string = value.to_string_literal().unwrap_or_else(|| {
+                panic!(
+                    "#[{}] '{}' must be a string literal",
+                    keys::PROVIDE,
+                    keys::BIND
+                )
+            });
+
+            // We need: Box<dyn TraitType + Send + Sync>
+            let boxed_type = format!("std::boxed::Box<dyn {} + Send + Sync>", type_string);
+
+            syn::parse_str::<Box<Type>>(&boxed_type)
+                .unwrap_or_else(|_| panic!("'{}' is not a valid trait type", type_string))
+        });
+
         // Handle unknowns key-value
         if let Some((invalid_key, _)) = map.iter().next() {
-            panic!("#[provide] has invalid key: {}", invalid_key);
+            panic!("#[{}] has invalid key: {}", keys::PROVIDE, invalid_key);
         }
 
         ProvideAttribute {
             name,
             scope,
             target,
+            bind,
         }
     }
 
@@ -59,9 +86,10 @@ impl ProvideAttribute {
         let name = self.name;
         let scope = self.scope;
         let target = self.target;
+        let bind = self.bind.as_deref();
         let ty = target.target_type();
 
-        let key = get_injection_key(&ty, name.as_deref());
+        let key = get_injection_key(bind.unwrap_or(&ty), name.as_deref());
 
         // We need a return type for the function
         if let Target::Fn(item_fn) = &target {
@@ -74,22 +102,22 @@ impl ProvideAttribute {
             Target::Fn(item_fn) => match scope {
                 Scope::Scoped => {
                     if item_fn.sig.inputs.is_empty() {
-                        get_scoped_provider(item_fn)
+                        get_scoped_provider(item_fn, bind)
                     } else {
-                        get_resolved_scoped_provider(item_fn, &ty)
+                        get_resolved_scoped_provider(item_fn, &ty, bind)
                     }
                 }
                 Scope::Singleton => {
                     if item_fn.sig.inputs.is_empty() {
-                        get_singleton_provider(item_fn)
+                        get_singleton_provider(item_fn, bind)
                     } else {
-                        get_resolved_singleton_provider(item_fn, &ty)
+                        get_resolved_singleton_provider(item_fn, &ty, bind)
                     }
                 }
             },
             Target::Struct(item_struct) => match scope {
-                Scope::Scoped => get_inject_provider(item_struct),
-                Scope::Singleton => get_singleton_inject_provider(item_struct),
+                Scope::Scoped => get_inject_provider(item_struct, bind),
+                Scope::Singleton => get_singleton_inject_provider(item_struct, bind),
             },
         };
 
@@ -121,103 +149,6 @@ impl ProvideAttribute {
             // Let the rest of the code the same
             #target
         }
-    }
-}
-
-fn get_injection_key(ty: &syn::Type, name: Option<&str>) -> TokenStream {
-    match name {
-        Some(s) => {
-            quote! {
-                dilib::InjectionKey::with_name::<#ty>(#s)
-            }
-        }
-        None => {
-            quote! {
-                dilib::InjectionKey::of::<#ty>()
-            }
-        }
-    }
-}
-
-fn get_scoped_provider(item_fn: &ItemFn) -> TokenStream {
-    let fn_name = item_fn.sig.ident.clone();
-    quote! {
-        dilib::Provider::Scoped(
-            dilib::Scoped::from_factory(#fn_name)
-        )
-    }
-}
-
-fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &syn::Type) -> TokenStream {
-    let fn_name = item_fn.sig.ident.clone();
-    let resolved_args = ResolvedFnArg::from_fn(item_fn);
-    let arg_names = resolved_args
-        .iter()
-        .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
-        .collect::<Vec<_>>();
-
-    quote! {
-        dilib::Provider::Scoped(
-            dilib::Scoped::from_construct(|container: &dilib::Container| -> #ty {
-                #(#resolved_args)*
-                #fn_name(#(#arg_names),*)
-            })
-        )
-    }
-}
-
-fn get_singleton_provider(item_fn: &ItemFn) -> TokenStream {
-    let fn_name = item_fn.sig.ident.clone();
-    let fn_call = quote! { #fn_name () };
-
-    quote! {
-        dilib::Provider::Singleton(
-            dilib::Shared::new(#fn_call)
-        )
-    }
-}
-
-fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &syn::Type) -> TokenStream {
-    let fn_name = item_fn.sig.ident.clone();
-    let resolved_args = ResolvedFnArg::from_fn(item_fn);
-    let arg_names = resolved_args
-        .iter()
-        .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
-        .collect::<Vec<_>>();
-
-    quote! {
-        dilib::Provider::Singleton(
-            dilib::Shared::from_factory(|container: &dilib::Container| -> #ty {
-                #(#resolved_args)*
-                #fn_name(#(#arg_names),*)
-            })
-        )
-    }
-}
-
-fn get_inject_provider(item_struct: &ItemStruct) -> TokenStream {
-    let struct_name = item_struct.ident.clone();
-
-    quote! {
-        dilib::Provider::Scoped(
-            dilib::Scoped::from_construct(|container: &dilib::Container| -> #struct_name {
-                    <#struct_name as dilib::Inject> :: inject(container)
-                }
-            )
-        )
-    }
-}
-
-fn get_singleton_inject_provider(item_struct: &ItemStruct) -> TokenStream {
-    let struct_name = item_struct.ident.clone();
-
-    quote! {
-        dilib::Provider::Singleton(
-            dilib::Shared::new_lazy(|container: &dilib::Container| -> #struct_name {
-                    <#struct_name as dilib::Inject> :: inject(container)
-                }
-            )
-        )
     }
 }
 
@@ -255,4 +186,168 @@ fn generate_fn_name(ty: &syn::Type, target: &Target) -> syn::Ident {
     */
     let name = format!("dilib_{}{}", name, type_name);
     syn::Ident::new(&name, Span::call_site())
+}
+
+// Providers codegen
+fn get_injection_key(ty: &syn::Type, name: Option<&str>) -> TokenStream {
+    match name {
+        Some(s) => {
+            quote! {
+                dilib::InjectionKey::with_name::<#ty>(#s)
+            }
+        }
+        None => {
+            quote! {
+                dilib::InjectionKey::of::<#ty>()
+            }
+        }
+    }
+}
+
+fn get_scoped_provider(item_fn: &ItemFn, bind: Option<&syn::Type>) -> TokenStream {
+    let fn_name = item_fn.sig.ident.clone();
+
+    if let Some(bind) = bind {
+        let factory = quote! {
+           || std::boxed::Box::<#bind>::new(#fn_name())
+        };
+
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_factory(#factory)
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_factory(#fn_name)
+            )
+        }
+    }
+}
+
+fn get_resolved_scoped_provider(item_fn: &ItemFn, ty: &syn::Type, bind: Option<&syn::Type>) -> TokenStream {
+    let fn_name = item_fn.sig.ident.clone();
+    let resolved_args = ResolvedFnArg::from_fn(item_fn);
+    let arg_names = resolved_args
+        .iter()
+        .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
+        .collect::<Vec<_>>();
+
+    if let Some(bind) = bind {
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_construct(|container: &dilib::Container| -> #bind {
+                    #(#resolved_args)*
+                    std::boxed::Box::new(#fn_name(#(#arg_names),*))
+                })
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_construct(|container: &dilib::Container| -> #ty {
+                    #(#resolved_args)*
+                    #fn_name(#(#arg_names),*)
+                })
+            )
+        }
+    }
+}
+
+fn get_singleton_provider(item_fn: &ItemFn, bind: Option<&syn::Type>) -> TokenStream {
+    let fn_name = item_fn.sig.ident.clone();
+    let fn_call = quote! { #fn_name () };
+
+    if let Some(bind) = bind {
+        let val = quote! { std::boxed::Box::<#bind>::new(#fn_call()) };
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::new(#val)
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::new(#fn_call)
+            )
+        }
+    }
+}
+
+fn get_resolved_singleton_provider(item_fn: &ItemFn, ty: &syn::Type, bind: Option<&syn::Type>) -> TokenStream {
+    let fn_name = item_fn.sig.ident.clone();
+    let resolved_args = ResolvedFnArg::from_fn(item_fn);
+    let arg_names = resolved_args
+        .iter()
+        .map(|arg| syn::Ident::new(&arg.arg_name, Span::call_site()))
+        .collect::<Vec<_>>();
+
+    if let Some(bind) = bind {
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::from_factory(|container: &dilib::Container| -> #bind {
+                    #(#resolved_args)*
+                    std::boxed::Box::new(#fn_name(#(#arg_names),*))
+                })
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::from_factory(|container: &dilib::Container| -> #ty {
+                    #(#resolved_args)*
+                    #fn_name(#(#arg_names),*)
+                })
+            )
+        }
+    }
+}
+
+fn get_inject_provider(item_struct: &ItemStruct, bind: Option<&syn::Type>) -> TokenStream {
+    let struct_name = item_struct.ident.clone();
+
+    if let Some(bind) = bind {
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_construct(|container: &dilib::Container| -> #bind {
+                        std::boxed::Box::new(<#struct_name as dilib::Inject> :: inject(container))
+                    }
+                )
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Scoped(
+                dilib::Scoped::from_construct(|container: &dilib::Container| -> #struct_name {
+                        <#struct_name as dilib::Inject> :: inject(container)
+                    }
+                )
+            )
+        }
+    }
+}
+
+fn get_singleton_inject_provider(item_struct: &ItemStruct, bind: Option<&syn::Type>) -> TokenStream {
+    let struct_name = item_struct.ident.clone();
+
+    if let Some(bind) = bind {
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::new_lazy(|container: &dilib::Container| -> #bind {
+                        std::boxed::Box::new(<#struct_name as dilib::Inject> :: inject(container))
+                    }
+                )
+            )
+        }
+    } else {
+        quote! {
+            dilib::Provider::Singleton(
+                dilib::Shared::new_lazy(|container: &dilib::Container| -> #struct_name {
+                        <#struct_name as dilib::Inject> :: inject(container)
+                    }
+                )
+            )
+        }
+    }
 }

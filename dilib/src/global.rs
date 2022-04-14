@@ -260,8 +260,8 @@ mod tests {
                 .add_scoped(|| String::from("Hello World"))
                 .unwrap();
             container.add_singleton(Mutex::new(5_i32)).unwrap();
-            register_singleton_trait!(container, Greeter, EnglishGreeter).unwrap();
-            register_scoped_trait!(container, "es", Greeter, SpanishGreeter).unwrap();
+            register_singleton_trait!(container, Greeter => EnglishGreeter).unwrap();
+            register_scoped_trait!(container, "es", Greeter => SpanishGreeter).unwrap();
         })
         .unwrap();
 

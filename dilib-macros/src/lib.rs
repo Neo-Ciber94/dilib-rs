@@ -3,6 +3,7 @@ mod resolve_fn_arg;
 mod scope;
 mod target;
 mod utils;
+mod keys;
 
 use crate::provide_attr::ProvideAttribute;
 use proc_macro::TokenStream;
@@ -14,6 +15,7 @@ use target::Target;
 /// # Arguments
 /// - `name`: The name of the provider.
 /// - `scope`: The scope 'singleton' or 'scoped', defaults to 'scoped'.
+/// - `bind`: The trait to bind this instance to. This adds `Send + Sync` to the type.
 ///
 /// # Example
 ///
