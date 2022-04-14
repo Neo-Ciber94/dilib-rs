@@ -18,7 +18,11 @@ macro_rules! impl_resolve_call_fn {
             type Output = Out;
             fn resolve_call(&self, container: &Container) -> Self::Output {
                 (self)(
-                    $(container.get::<$t>().as_ref().unwrap()),+
+                    $(
+                        container.get::<$t>()
+                            .as_ref()
+                            .unwrap_or_else(|| panic!("unable to get {}", stringify!($t)))
+                    ),+
                 )
             }
         }
@@ -71,3 +75,38 @@ impl_resolve_call_fn!(mut A, B, C, D, E, F, G, H, I, J, K, L, M);
 impl_resolve_call_fn!(mut A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_resolve_call_fn!(mut A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_resolve_call_fn!(mut A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+    use dilib::{Container, Singleton};
+    use crate::resolve_call::ResolveCall;
+
+    #[test]
+    fn resolve_call_test_1() {
+        let repeater = |a: &String| {
+            return a.repeat(2);
+        };
+
+        let mut container = Container::new();
+        container.add_scoped(|| String::from("hello")).unwrap();
+
+        let result = repeater.resolve_call(&container);
+        assert_eq!(result, "hellohello");
+    }
+
+    #[test]
+    fn resolve_call_fn_test_2() {
+        let repeater = |a: &String, count: &Singleton<Mutex<usize>>| {
+            let count = *count.lock().expect("unable to get lock");
+            return a.repeat(count);
+        };
+
+        let mut container = Container::new();
+        container.add_scoped(|| String::from("adios!")).expect("unable to add scoped");
+        container.add_singleton(Mutex::new(3)).expect("unable to add singleton");
+
+        let result = repeater.resolve_call(&container);
+        assert_eq!(result, "adios!adios!adios!".to_owned());
+    }
+}
