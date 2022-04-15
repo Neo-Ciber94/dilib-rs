@@ -1,1 +1,3 @@
-../README.md
+# Dilib Macros
+
+Procedural macros for `dilib`.
