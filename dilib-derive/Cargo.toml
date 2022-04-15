@@ -16,8 +16,8 @@ proc_macro = true
 [dependencies]
 proc-macro2 = "1.0.27"
 quote = "1.0.9"
-syn = { version = "1.0.73" , features=["parsing"] }
+syn = { version = "1.0.73" , features=["parsing"]}
 mattro = "0.1.2"
 
 [dev-dependencies]
-dilib = { path = "../dilib", version="0.2.0-aplha" }
+dilib = { path = "../dilib", version="0.2.0-alpha" }
