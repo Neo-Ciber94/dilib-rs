@@ -1,13 +1,16 @@
-use std::any::TypeId;
 use crate::entities::audit_log::LogLevel;
+use crate::utils::Type;
 use crate::{AuditLog, AuditLogService};
 use actix_web::http::Method;
-use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error};
+use actix_web::{
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    Error,
+};
 use dilib::resolve;
 use futures_util::future::LocalBoxFuture;
+use std::any::TypeId;
 use std::future::{ready, Ready};
 use std::marker::PhantomData;
-use crate::utils::Type;
 
 pub struct AuditLogger<T>(PhantomData<T>);
 pub fn audit_logger<T: 'static>() -> AuditLogger<T> {
@@ -19,7 +22,7 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
-    T: 'static
+    T: 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -30,7 +33,7 @@ where
     fn new_transform(&self, service: S) -> Self::Future {
         ready(Ok(AuditLoggerMiddleware {
             service,
-            _marker: PhantomData
+            _marker: PhantomData,
         }))
     }
 }
@@ -118,7 +121,10 @@ fn generate_message<T: 'static>(_req: &ServiceRequest) -> Option<String> {
 }
 
 fn can_log_method(method: &Method) -> bool {
-    matches!(method, &Method::POST | &Method::PATCH | &Method::PUT | &Method::DELETE)
+    matches!(
+        method,
+        &Method::POST | &Method::PATCH | &Method::PUT | &Method::DELETE
+    )
 }
 
 fn is_unit<T: 'static>() -> bool {

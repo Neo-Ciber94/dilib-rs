@@ -12,9 +12,9 @@ use crate::services::audit_log_service::AuditLogService;
 use actix_web::middleware;
 use actix_web::{web, App, HttpServer};
 use dilib::add_scoped_trait;
+use dilib::global::init_container;
 use entities::audit_log::AuditLog;
 use uuid::Uuid;
-use dilib::global::init_container;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -55,7 +55,10 @@ async fn main() -> std::io::Result<()> {
 fn init_dependency_injection() {
     init_container(|container| {
         // Scoped
-        add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default()).unwrap();
-        add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default()).unwrap();
-    }).unwrap();
+        add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+            .unwrap();
+        add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+            .unwrap();
+    })
+    .unwrap();
 }

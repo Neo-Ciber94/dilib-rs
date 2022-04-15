@@ -1,9 +1,9 @@
+use crate::entities::audit_log::AuditLog;
+use crate::Repository;
 use actix_web::web::Path;
 use actix_web::{get, HttpResponse, Responder};
-use uuid::Uuid;
-use crate::Repository;
-use crate::entities::audit_log::AuditLog;
 use dilib::resolve;
+use uuid::Uuid;
 
 #[get("")]
 pub async fn get_all() -> impl Responder {

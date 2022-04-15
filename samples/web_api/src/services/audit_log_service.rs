@@ -1,5 +1,5 @@
 use crate::{AuditLog, Repository};
-use dilib::{get_scoped_trait, Container, Inject, provide};
+use dilib::{get_scoped_trait, provide, Container, Inject};
 use futures_util::lock::Mutex;
 use uuid::Uuid;
 

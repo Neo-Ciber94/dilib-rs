@@ -26,10 +26,7 @@ pub async fn get_all(_req: HttpRequest) -> impl Responder {
 }
 
 #[get("/{id}")]
-pub async fn get_by_id(
-    id: Path<Uuid>,
-    _req: HttpRequest,
-) -> impl Responder {
+pub async fn get_by_id(id: Path<Uuid>, _req: HttpRequest) -> impl Responder {
     let id = id.into_inner();
     let repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
     match repository.get(id).await {
@@ -39,10 +36,7 @@ pub async fn get_by_id(
 }
 
 #[post("")]
-pub async fn create(
-    data: Json<TodoTaskCreate>,
-    _req: HttpRequest,
-) -> impl Responder {
+pub async fn create(data: Json<TodoTaskCreate>, _req: HttpRequest) -> impl Responder {
     let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
     let data = data.into_inner();
 
@@ -80,10 +74,7 @@ pub async fn update(
 }
 
 #[delete("/{id}")]
-pub async fn delete(
-    id: Path<Uuid>,
-    _req: HttpRequest,
-) -> impl Responder {
+pub async fn delete(id: Path<Uuid>, _req: HttpRequest) -> impl Responder {
     let id = id.into_inner();
     let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
@@ -94,10 +85,7 @@ pub async fn delete(
 }
 
 #[post("/complete/{id}")]
-pub async fn complete(
-    id: Path<Uuid>,
-    _req: HttpRequest,
-) -> impl Responder {
+pub async fn complete(id: Path<Uuid>, _req: HttpRequest) -> impl Responder {
     let id = id.into_inner();
     let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
@@ -117,10 +105,7 @@ pub async fn complete(
 }
 
 #[post("/toggle/{id}")]
-pub async fn toggle(
-    id: Path<Uuid>,
-    _req: HttpRequest,
-) -> impl Responder {
+pub async fn toggle(id: Path<Uuid>, _req: HttpRequest) -> impl Responder {
     let id = id.into_inner();
     let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
