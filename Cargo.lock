@@ -474,7 +474,6 @@ name = "dilib-macros"
 version = "0.2.0-alpha"
 dependencies = [
  "const_format",
- "ctor",
  "dilib",
  "mattro",
  "proc-macro2",
