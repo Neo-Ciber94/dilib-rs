@@ -34,7 +34,7 @@ impl Repository<User> for UserRepository {
 fn main() {
     // Initialize the container to register the providers
     init_container(|_container| {
-        // Add additional providers
+// Add additional providers
     }).unwrap();
 
     let user_repository = resolve!(trait Repository<User>).unwrap();

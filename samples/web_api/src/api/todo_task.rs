@@ -1,12 +1,10 @@
 use crate::entities::todo_task::TodoTask;
 use crate::Repository;
-use actix_web::web::{Data, Json, Path};
+use actix_web::web::{Json, Path};
 use actix_web::{delete, get, post, put, HttpRequest, HttpResponse, Responder};
-use dilib::{get_scoped_trait, Container};
+use dilib::get_scoped;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-type SharedContainer = Data<Container<'static>>;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TodoTaskCreate {
@@ -21,9 +19,8 @@ pub struct TodoTaskUpdate {
 }
 
 #[get("")]
-pub async fn get_all(container: SharedContainer, _req: HttpRequest) -> impl Responder {
-    let repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
-
+pub async fn get_all(_req: HttpRequest) -> impl Responder {
+    let repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
     let result = repository.get_all().await;
     HttpResponse::Ok().json(result)
 }
@@ -31,12 +28,10 @@ pub async fn get_all(container: SharedContainer, _req: HttpRequest) -> impl Resp
 #[get("/{id}")]
 pub async fn get_by_id(
     id: Path<Uuid>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
     let id = id.into_inner();
-    let repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
-
+    let repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
     match repository.get(id).await {
         Some(task) => HttpResponse::Ok().json(task),
         None => HttpResponse::NotFound().finish(),
@@ -46,11 +41,11 @@ pub async fn get_by_id(
 #[post("")]
 pub async fn create(
     data: Json<TodoTaskCreate>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
-    let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
+    let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
     let data = data.into_inner();
+
     let new_todo = TodoTask {
         id: Uuid::new_v4(),
         title: data.title,
@@ -66,12 +61,11 @@ pub async fn create(
 pub async fn update(
     id: Path<Uuid>,
     data: Json<TodoTaskUpdate>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
     let id = id.into_inner();
     let data = data.into_inner();
-    let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
+    let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
     if let Some(mut to_update) = repository.get(id).await {
         to_update.title = data.title.unwrap_or(to_update.title);
@@ -88,11 +82,10 @@ pub async fn update(
 #[delete("/{id}")]
 pub async fn delete(
     id: Path<Uuid>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
     let id = id.into_inner();
-    let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
+    let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
     match repository.delete(id).await {
         Some(task) => HttpResponse::Ok().json(task),
@@ -103,11 +96,10 @@ pub async fn delete(
 #[post("/{id}/complete")]
 pub async fn complete(
     id: Path<Uuid>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
     let id = id.into_inner();
-    let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
+    let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
     if let Some(mut task) = repository.get(id).await {
         if task.completed_at.is_some() {
@@ -127,11 +119,10 @@ pub async fn complete(
 #[post("/{id}/toggle")]
 pub async fn toggle(
     id: Path<Uuid>,
-    container: SharedContainer,
     _req: HttpRequest,
 ) -> impl Responder {
     let id = id.into_inner();
-    let mut repository = get_scoped_trait!(container, Repository<TodoTask, Uuid>).unwrap();
+    let mut repository = get_scoped!(trait Repository<TodoTask, Uuid>).unwrap();
 
     if let Some(mut task) = repository.get(id).await {
         if task.completed_at.is_some() {

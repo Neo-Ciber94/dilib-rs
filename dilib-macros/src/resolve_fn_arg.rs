@@ -51,7 +51,7 @@ impl ResolvedFnArg {
             .filter(|att| att.path() == keys::INJECT)
             .collect::<Vec<_>>();
 
-        if attrs.len() > 0 {
+        if !attrs.is_empty() {
             for attr in attrs.iter() {
                 let arg = match attr.get(0) {
                     Some(MetaItem::Path(path)) => path.clone(),

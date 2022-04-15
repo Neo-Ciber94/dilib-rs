@@ -10,12 +10,14 @@ use crate::repositories::{in_memory::InMemoryRepository, Repository};
 use crate::services::audit_log_service::AuditLogService;
 use actix_web::middleware;
 use actix_web::{web, App, HttpServer};
-use dilib::{add_scoped_trait, Container};
+use dilib::add_scoped_trait;
 use entities::audit_log::AuditLog;
 use uuid::Uuid;
+use dilib::global::init_container;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    init_dependency_injection();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
 
     let port = std::env::var("PORT")
@@ -28,7 +30,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::NormalizePath::trim())
             .wrap(middleware::Logger::default())
             .wrap(AuditLogger)
-            .app_data(web::Data::new(create_container()))
             .service(
                 web::scope("/api/todos")
                     .service(api::todo_task::get_all)
@@ -50,17 +51,23 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-fn create_container() -> Container<'static> {
-    let mut container = Container::new();
+fn init_dependency_injection() {
+    // let mut container = Container::new();
+    //
+    // // Scoped
+    // add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+    //     .unwrap();
+    // add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+    //     .unwrap();
+    // container.add_deps::<AuditLogService>().unwrap();
+    //
+    // // Singletons
+    //
+    // container
 
-    // Scoped
-    add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
-        .unwrap();
-    add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
-        .unwrap();
-    container.add_deps::<AuditLogService>().unwrap();
-
-    // Singletons
-
-    container
+    init_container(|container| {
+        // Scoped
+        add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default()).unwrap();
+        add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default()).unwrap();
+    }).unwrap();
 }

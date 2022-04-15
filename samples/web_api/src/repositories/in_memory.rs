@@ -8,21 +8,20 @@ use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
 
+type ObjectMap = Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>>;
+
 lazy_static! {
-    static ref STORAGE: Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>> =
-        Default::default();
+    static ref STORAGE: ObjectMap = Default::default();
 }
 
 pub struct InMemoryRepository<T, Id> {
-    _id: PhantomData<Id>,
-    _t: PhantomData<T>,
+    _marker: PhantomData<(T, Id)>,
 }
 
 impl<T, Id> Default for InMemoryRepository<T, Id> {
     fn default() -> Self {
-        InMemoryRepository {
-            _id: PhantomData,
-            _t: PhantomData,
+        Self {
+            _marker: PhantomData,
         }
     }
 }

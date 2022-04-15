@@ -71,7 +71,7 @@ impl<'a> Shared<'a> {
                 if lazy.is_init() {
                     lazy.get().and_then(|x| x.clone().downcast().ok())
                 } else {
-                    lazy.get_or_init(&container).clone().downcast().ok()
+                    lazy.get_or_init(container).clone().downcast().ok()
                 }
             }
 

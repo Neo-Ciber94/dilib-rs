@@ -1,8 +1,9 @@
 use crate::{AuditLog, Repository};
-use dilib::{get_scoped_trait, Container, Inject};
+use dilib::{get_scoped_trait, Container, Inject, provide};
 use futures_util::lock::Mutex;
 use uuid::Uuid;
 
+#[provide]
 pub struct AuditLogService {
     repository: Mutex<Box<dyn Repository<AuditLog, Uuid> + Send + Sync>>,
 }

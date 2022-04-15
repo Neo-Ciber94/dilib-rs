@@ -1,7 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::ToTokens;
-use syn::parse::{Parse, ParseStream};
-use syn::{Error, ItemFn, ItemStruct, TypePath};
+use syn::{ItemFn, ItemStruct, TypePath};
 
 #[derive(Debug, Clone)]
 pub enum Target {
@@ -26,26 +25,6 @@ impl Target {
                 Box::new(ty)
             }
         }
-    }
-}
-
-impl Parse for Target {
-    // There is not actually a double ref
-    #[allow(clippy::clone_double_ref)]
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        // TODO: Optimize with lookahead
-        if let Ok(item_fn) = input.clone().parse() {
-            return Ok(Target::Fn(item_fn));
-        }
-
-        if let Ok(item_struct) = input.clone().parse() {
-            return Ok(Target::Struct(item_struct));
-        }
-
-        Err(Error::new(
-            proc_macro2::Span::call_site(),
-            "Expected a function or struct",
-        ))
     }
 }
 

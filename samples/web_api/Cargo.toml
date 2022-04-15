@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dilib = { path = "../../dilib", features=["derive"] }
+dilib = { path = "../../dilib", features=["full", "unstable_provide"] }
 actix-web = "4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -15,3 +15,6 @@ async-trait = "0.1.53"
 chrono = { version = "0.4.19", features = ["serde"] }
 lazy_static = "1.4.0"
 futures-util = "0.3.21"
+
+# For some reason this dependency was not included with dilib
+ctor = "0.1.22"

@@ -60,7 +60,17 @@ use target::Target;
 #[proc_macro_attribute]
 pub fn provide(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = syn::parse_macro_input!(attr as syn::AttributeArgs);
-    let target = parse_macro_input!(item as Target);
+    let target = match parse_macro_input!(item as syn::Item) {
+        syn::Item::Fn(item_fn) => Target::Fn(item_fn),
+        syn::Item::Struct(item_struct) => Target::Struct(item_struct),
+        _ => {
+            let call_site = proc_macro2::Span::call_site();
+            return syn::Error::new(call_site, "Expected a function or struct", )
+                .into_compile_error()
+                .into()
+        },
+    };
+
     ProvideAttribute::new(attr, target).expand().into()
 }
 
