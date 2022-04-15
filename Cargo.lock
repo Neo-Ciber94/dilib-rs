@@ -445,7 +445,6 @@ name = "dilib"
 version = "0.2.0-alpha"
 dependencies = [
  "ctor",
- "dilib",
  "dilib-derive",
  "dilib-macros",
  "once_cell",
