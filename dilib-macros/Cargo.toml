@@ -11,11 +11,11 @@ proc_macro = true
 
 [dependencies]
 proc-macro2 = "1.0.37"
-syn = { version = "1.0.91", features = ["extra-traits", "parsing", "derive"] }
 quote = "1.0.17"
+syn = { version = "1.0.91", features = ["full"] }
 mattro = "0.1.2"
 const_format = "0.2.22"
 
 [dev-dependencies]
-dilib = { path="../dilib", version="0.2.0-alpha", features=["full", "unstable_provide"] }
+#dilib = { path = "../dilib", version="0.2.0-alpha" }
 

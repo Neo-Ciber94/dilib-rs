@@ -59,7 +59,7 @@ use target::Target;
 /// ```
 #[proc_macro_attribute]
 pub fn provide(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attr = syn::parse_macro_input!(attr as syn::AttributeArgs);
+    let attr = parse_macro_input!(attr as syn::AttributeArgs);
     let target = match parse_macro_input!(item as syn::Item) {
         syn::Item::Fn(item_fn) => Target::Fn(item_fn),
         syn::Item::Struct(item_struct) => Target::Struct(item_struct),

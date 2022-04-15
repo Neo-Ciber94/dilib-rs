@@ -455,7 +455,6 @@ dependencies = [
 name = "dilib-derive"
 version = "0.2.0-alpha"
 dependencies = [
- "dilib",
  "mattro",
  "proc-macro2",
  "quote",
@@ -474,7 +473,6 @@ name = "dilib-macros"
 version = "0.2.0-alpha"
 dependencies = [
  "const_format",
- "dilib",
  "mattro",
  "proc-macro2",
  "quote",
