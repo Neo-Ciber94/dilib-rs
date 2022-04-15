@@ -230,11 +230,6 @@ macro_rules! resolve {
     }};
 }
 
-#[cold]
-#[allow(dead_code)]
-#[ctor::ctor]
-fn trigger(){}
-
 #[cfg(test)]
 mod tests {
     use crate::global::{get_container, init_container, GlobalContainer};
