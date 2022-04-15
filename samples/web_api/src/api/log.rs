@@ -8,7 +8,8 @@ use dilib::resolve;
 #[get("")]
 pub async fn get_all() -> impl Responder {
     let repository = resolve!(trait Repository<AuditLog, Uuid>).unwrap();
-    let result = repository.get_all().await;
+    let mut result = repository.get_all().await;
+    result.sort_by_key(|x| std::cmp::Reverse(x.created_at().clone()));
     HttpResponse::Ok().json(result)
 }
 

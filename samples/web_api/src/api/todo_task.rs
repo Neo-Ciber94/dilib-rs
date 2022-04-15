@@ -93,7 +93,7 @@ pub async fn delete(
     }
 }
 
-#[post("/{id}/complete")]
+#[post("/complete/{id}")]
 pub async fn complete(
     id: Path<Uuid>,
     _req: HttpRequest,
@@ -116,7 +116,7 @@ pub async fn complete(
     HttpResponse::NotFound().finish()
 }
 
-#[post("/{id}/toggle")]
+#[post("/toggle/{id}")]
 pub async fn toggle(
     id: Path<Uuid>,
     _req: HttpRequest,

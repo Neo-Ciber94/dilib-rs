@@ -3,9 +3,10 @@ mod entities;
 mod middlewares;
 mod repositories;
 mod services;
+mod utils;
 
 use crate::entities::todo_task::TodoTask;
-use crate::middlewares::AuditLogger;
+use crate::middlewares::audit_logger;
 use crate::repositories::{in_memory::InMemoryRepository, Repository};
 use crate::services::audit_log_service::AuditLogService;
 use actix_web::middleware;
@@ -29,9 +30,9 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(middleware::NormalizePath::trim())
             .wrap(middleware::Logger::default())
-            .wrap(AuditLogger)
             .service(
                 web::scope("/api/todos")
+                    .wrap(audit_logger::<TodoTask>())
                     .service(api::todo_task::get_all)
                     .service(api::todo_task::get_by_id)
                     .service(api::todo_task::create)

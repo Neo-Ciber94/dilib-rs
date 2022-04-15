@@ -60,9 +60,46 @@ pub struct AuditLog {
     created_at: DateTime<Utc>,
 }
 
+#[allow(dead_code)]
 impl AuditLog {
     pub fn builder() -> AuditLogBuilder {
         AuditLogBuilder::new()
+    }
+
+    pub fn id(&self) -> &Uuid {
+        &self.id
+    }
+
+    pub fn message(&self) -> &Option<String> {
+        &self.message
+    }
+
+    pub fn method(&self) -> &HttpVerb {
+        &self.method
+    }
+
+    pub fn route(&self) -> &String {
+        &self.route
+    }
+
+    pub fn level(&self) -> &LogLevel {
+        &self.level
+    }
+
+    pub fn ip(&self) -> &Option<IpAddr> {
+        &self.ip
+    }
+
+    pub fn duration_ms(&self) -> &u128 {
+        &self.duration_ms
+    }
+
+    pub fn user_agent(&self) -> &Option<String> {
+        &self.user_agent
+    }
+
+    pub fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
     }
 }
 

@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
+use serde::{de::DeserializeOwned, Serialize};
 
 type ObjectMap = Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>>;
 
@@ -29,8 +30,8 @@ impl<T, Id> Default for InMemoryRepository<T, Id> {
 #[async_trait::async_trait]
 impl<T, Id> Repository<T, Id> for InMemoryRepository<T, Id>
 where
-    T: Entity<Id> + Sync + Send + Clone + 'static,
-    Id: Hash + Sync + Send,
+    T: Entity<Id> + Sync + Send + Clone + DeserializeOwned + Serialize +'static,
+    Id: Hash + Sync + Send + DeserializeOwned + Serialize,
 {
     async fn get_all(&self) -> Vec<T> {
         let mut result = Vec::new();

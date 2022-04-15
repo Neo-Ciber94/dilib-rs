@@ -1,3 +1,5 @@
+use serde::{de::DeserializeOwned, Serialize};
+
 pub mod in_memory;
 
 pub trait Entity<Id> {
@@ -7,8 +9,8 @@ pub trait Entity<Id> {
 #[async_trait::async_trait]
 pub trait Repository<T, Id>
 where
-    T: Entity<Id> + Send + Sync + Clone,
-    Id: Send + Sync,
+    T: Entity<Id> + Send + Sync + Clone + DeserializeOwned + Serialize,
+    Id: Send + Sync + DeserializeOwned + Serialize,
 {
     async fn get_all(&self) -> Vec<T>;
     async fn get(&self, id: Id) -> Option<T>;

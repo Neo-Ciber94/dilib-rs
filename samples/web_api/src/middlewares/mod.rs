@@ -1,41 +1,51 @@
+use std::any::TypeId;
 use crate::entities::audit_log::LogLevel;
 use crate::{AuditLog, AuditLogService};
 use actix_web::http::Method;
-use actix_web::{
-    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
-};
+use actix_web::{dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform}, Error};
 use dilib::resolve;
 use futures_util::future::LocalBoxFuture;
 use std::future::{ready, Ready};
-pub struct AuditLogger;
+use std::marker::PhantomData;
+use crate::utils::Type;
 
-impl<S, B> Transform<S, ServiceRequest> for AuditLogger
+pub struct AuditLogger<T>(PhantomData<T>);
+pub fn audit_logger<T: 'static>() -> AuditLogger<T> {
+    AuditLogger(PhantomData)
+}
+
+impl<T, S, B> Transform<S, ServiceRequest> for AuditLogger<T>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
+    T: 'static
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type Transform = AuditLoggerMiddleware<S>;
+    type Transform = AuditLoggerMiddleware<S, T>;
     type InitError = ();
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuditLoggerMiddleware { service }))
+        ready(Ok(AuditLoggerMiddleware {
+            service,
+            _marker: PhantomData
+        }))
     }
 }
 
-pub struct AuditLoggerMiddleware<S> {
+pub struct AuditLoggerMiddleware<S, T> {
     service: S,
+    _marker: PhantomData<T>,
 }
 
-impl<S, B> Service<ServiceRequest> for AuditLoggerMiddleware<S>
+impl<S, B, T> Service<ServiceRequest> for AuditLoggerMiddleware<S, T>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
+    T: 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -46,7 +56,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let method = req.method().clone();
 
-        // Ignore get requests
+        // Ignore some requests
         if !can_log_method(&method) {
             let fut = self.service.call(req);
             return Box::pin(async move {
@@ -56,7 +66,7 @@ where
         }
 
         let ip = req.peer_addr().map(|addr| addr.ip());
-        let message = generate_message(&req);
+        let message = generate_message::<T>(&req);
         let route = req.match_info().as_str().to_owned();
         let user_agent = req
             .headers()
@@ -96,10 +106,21 @@ where
     }
 }
 
-fn generate_message(_req: &ServiceRequest) -> Option<String> {
-    None
+fn generate_message<T: 'static>(_req: &ServiceRequest) -> Option<String> {
+    // We ignore unit type
+    if is_unit::<T>() {
+        return None;
+    }
+
+    let ty = Type::of::<T>();
+    let message = format!("On resource: {}", ty.name());
+    return Some(message);
 }
 
 fn can_log_method(method: &Method) -> bool {
     matches!(method, &Method::POST | &Method::PATCH | &Method::PUT | &Method::DELETE)
+}
+
+fn is_unit<T: 'static>() -> bool {
+    TypeId::of::<T>() == TypeId::of::<()>()
 }
