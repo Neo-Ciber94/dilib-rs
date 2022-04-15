@@ -57,11 +57,11 @@ impl_resolve_call_fn!(T0, T1, T2, T3);
 impl_resolve_call_fn!(T0, T1, T2, T3, T4);
 impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5);
 impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6);
-impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T6);
-impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T6, T8);
-impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T6, T8, T9);
-impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T6, T8, T9, T10);
-impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T6, T8, T9, T10, T11);
+impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T7);
+impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8);
+impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9);
+impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
+impl_resolve_call_fn!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 
 impl_resolve_call_fn!(mut T0);
 impl_resolve_call_fn!(mut T0, T1);
@@ -70,11 +70,11 @@ impl_resolve_call_fn!(mut T0, T1, T2, T3);
 impl_resolve_call_fn!(mut T0, T1, T2, T3, T4);
 impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5);
 impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6);
-impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T6);
-impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T6, T8);
-impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T6, T8, T9);
-impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T6, T8, T9, T10);
-impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T6, T8, T9, T10, T11);
+impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T7);
+impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T7, T8);
+impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T7, T8, T9);
+impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
+impl_resolve_call_fn!(mut T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 
 #[cfg(test)]
 mod tests {

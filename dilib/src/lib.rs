@@ -46,3 +46,6 @@ pub mod macros {
 
 #[cfg(feature = "unstable_provide")]
 pub use macros::*;
+
+#[cfg(feature = "unstable_provide")]
+pub use ctor::*;

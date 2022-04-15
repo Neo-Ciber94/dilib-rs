@@ -5,8 +5,7 @@ const _: () = {
     #[doc(hidden)]
     #[allow(non_snake_case)]
     #[allow(dead_code)]
-    #[ctor::ctor]
-    fn dilib_compute_singleton_Mutex_String() {
+    extern "C" fn dilib_compute_singleton_Mutex_String() {
         let mut lock = dilib::global::PROVIDERS
             .lock()
             .expect("unable to get providers lock");
@@ -26,6 +25,16 @@ const _: () = {
             )),
         });
     }
+    #[used]
+    #[allow(non_upper_case_globals)]
+    #[doc(hidden)]
+    #[link_section = ".CRT$XCU"]
+    static dilib_compute_singleton_Mutex_String___rust_ctor___ctor: unsafe extern "C" fn() = {
+        unsafe extern "C" fn dilib_compute_singleton_Mutex_String___rust_ctor___ctor() {
+            dilib_compute_singleton_Mutex_String()
+        };
+        dilib_compute_singleton_Mutex_String___rust_ctor___ctor
+    };
 };
 fn compute_singleton(x: i32, y: Arc<u32>) -> Mutex<String> {
     let z = x + y;

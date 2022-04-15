@@ -5,8 +5,7 @@ const _: () = {
     #[doc(hidden)]
     #[allow(non_snake_case)]
     #[allow(dead_code)]
-    #[ctor::ctor]
-    fn dilib_get_singleton_trait_String() {
+    extern "C" fn dilib_get_singleton_trait_String() {
         let mut lock = dilib::global::PROVIDERS
             .lock()
             .expect("unable to get providers lock");
@@ -20,6 +19,16 @@ const _: () = {
             })),
         });
     }
+    #[used]
+    #[allow(non_upper_case_globals)]
+    #[doc(hidden)]
+    #[link_section = ".CRT$XCU"]
+    static dilib_get_singleton_trait_String___rust_ctor___ctor: unsafe extern "C" fn() = {
+        unsafe extern "C" fn dilib_get_singleton_trait_String___rust_ctor___ctor() {
+            dilib_get_singleton_trait_String()
+        };
+        dilib_get_singleton_trait_String___rust_ctor___ctor
+    };
 };
 fn get_singleton_trait() -> String {
     "hola".to_string()

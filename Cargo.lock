@@ -474,6 +474,7 @@ name = "dilib-macros"
 version = "0.2.0-alpha"
 dependencies = [
  "const_format",
+ "ctor",
  "dilib",
  "mattro",
  "proc-macro2",
@@ -1392,7 +1393,6 @@ dependencies = [
  "actix-web",
  "async-trait",
  "chrono",
- "ctor",
  "dilib",
  "env_logger",
  "futures-util",

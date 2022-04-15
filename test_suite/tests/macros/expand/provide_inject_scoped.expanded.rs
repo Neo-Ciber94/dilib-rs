@@ -4,8 +4,7 @@ const _: () = {
     #[doc(hidden)]
     #[allow(non_snake_case)]
     #[allow(dead_code)]
-    #[ctor::ctor]
-    fn dilib_MyStruct_MyStruct() {
+    extern "C" fn dilib_MyStruct_MyStruct() {
         let mut lock = dilib::global::PROVIDERS
             .lock()
             .expect("unable to get providers lock");
@@ -19,6 +18,16 @@ const _: () = {
             )),
         });
     }
+    #[used]
+    #[allow(non_upper_case_globals)]
+    #[doc(hidden)]
+    #[link_section = ".CRT$XCU"]
+    static dilib_MyStruct_MyStruct___rust_ctor___ctor: unsafe extern "C" fn() = {
+        unsafe extern "C" fn dilib_MyStruct_MyStruct___rust_ctor___ctor() {
+            dilib_MyStruct_MyStruct()
+        };
+        dilib_MyStruct_MyStruct___rust_ctor___ctor
+    };
 };
 struct MyStruct {
     x: usize,

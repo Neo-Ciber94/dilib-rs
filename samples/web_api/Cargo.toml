@@ -15,6 +15,3 @@ async-trait = "0.1.53"
 chrono = { version = "0.4.19", features = ["serde"] }
 lazy_static = "1.4.0"
 futures-util = "0.3.21"
-
-# For some reason this dependency was not included with dilib
-ctor = "0.1.22"

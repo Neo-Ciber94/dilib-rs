@@ -396,16 +396,3 @@ let db = resolve!(Db).unwrap();
 println!("Total users: {}", db.0.read().unwrap().len());
 println!("{:#?}", users);
 ```
-
-### use of undeclared crate or module `ctor`
-
-If you ever see the error `use of undeclared crate or module `ctor`
-
-Add `ctor` to your `Cargo.toml`:
-
-```toml
-[dependencies]
-ctor = "0.1.22"
-```
-
-For some reason cargo failed to load the dependency from `dilib`.

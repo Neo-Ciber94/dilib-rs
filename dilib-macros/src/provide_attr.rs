@@ -140,7 +140,7 @@ impl ProvideAttribute {
                 #[doc(hidden)]
                 #[allow(non_snake_case)]
                 #[allow(dead_code)]
-                #[ctor::ctor]
+                #[dilib::ctor]
                 fn #ctor_name() {
                     #add_provider
                 }
