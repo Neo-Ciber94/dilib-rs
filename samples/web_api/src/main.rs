@@ -52,19 +52,6 @@ async fn main() -> std::io::Result<()> {
 }
 
 fn init_dependency_injection() {
-    // let mut container = Container::new();
-    //
-    // // Scoped
-    // add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
-    //     .unwrap();
-    // add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
-    //     .unwrap();
-    // container.add_deps::<AuditLogService>().unwrap();
-    //
-    // // Singletons
-    //
-    // container
-
     init_container(|container| {
         // Scoped
         add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default()).unwrap();

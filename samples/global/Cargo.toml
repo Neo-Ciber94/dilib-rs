@@ -1,9 +1,0 @@
-[package]
-name = "global"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-dilib = { path = "../../dilib", features = ["full", "unstable_provide"]}
-ctor = "0.1.22"
-once_cell = "1.10.0"
