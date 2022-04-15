@@ -2,7 +2,7 @@
 name = "dilib"
 description = "A dependency injection library for Rust"
 keywords = ["rust-patterns"]
-version = "0.2.0-alpha"
+version = "0.2.1-alpha"
 authors = ["Freddy L."]
 edition = "2021"
 license-file = "LICENSE"
