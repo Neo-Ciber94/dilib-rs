@@ -76,6 +76,8 @@
 ///     assert_eq!(bye.greet(), "bye world");
 /// }
 /// ```
+///
+/// [`Inject`]: crate::Inject
 #[macro_export]
 macro_rules! add_scoped_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{
@@ -228,6 +230,8 @@ macro_rules! get_scoped_trait {
 ///     assert_eq!(6, prod.calc(3, 2));
 /// }
 /// ```
+///
+/// [`Inject`]: crate::Inject
 #[macro_export]
 macro_rules! add_singleton_trait {
     ($container:ident, $trait_type:ident $(<$($generic:ident),+>)? => $impl_expr:expr) => {{

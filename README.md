@@ -69,19 +69,19 @@ printer.print(&es.greet());
 ## Table of Contents
 
 - [Container](#container)
-  - [Scoped provider](#singleton)
-  - [Singleton provider](#scoped)
-  - [Inject trait](#inject)
-  - [Bind trait to implementation](#bind_impl)
-  - [get, get_scoped and get_singleton](#get)
-- [Derive Inject](#derive_inject)
-- [Global Container](#global_container)
+  - [Scoped provider](#scoped-provider)
+  - [Singleton provider](#singleton-provider)
+  - [Inject trait](#inject-trait)
+  - [Bind trait to implementation](#bind-trait-to-implementation)
+  - [get, get_scoped and get_singleton](#get-get_scoped-and-get_singleton)
+- [Derive Inject](#derive-inject)
+- [Global Container](#global-container)
 - [Provide](#provide)
-  - [Why "unstable_provide"?](#why_unstable_provide)
-  - [#[provide] macro](#provide_macro)
-  - [use of undeclared crate or module `ctor`](#use_of_undeclared_ctor)
+  - [Why "unstable_provide"?](#why-unstable-provide)
+  - [provide macro](#provide-macro)
 
 ## Container
+
 The container is the main storage for the provides,
 it stores 2 types of providers:
 - `Scoped`: provides a new instance every time it is requested
@@ -91,6 +91,7 @@ All this provides can be named or unnamed, using the
 methods that ends with `with_name(...)`.
 
 ### Scoped provider
+
 The scoped providers provide a new instance every time they are requested.
 
 ```rust
@@ -104,6 +105,7 @@ assert_eq!(s.as_ref(), "Apple Pie");
 ```
 
 ### Singleton provider
+
 The singleton providers provide a single instance.
 
 ```rust
@@ -340,7 +342,7 @@ To allow run code before main we use the the [ctor](https://github.com/mmastrac/
 which have been tested in several OS, so depending on where you run your application this feature
 may not be unstable for your use case.
 
-### `#[provide]` macro
+### provide macro
 You can use the `#[provide]` macro over any function or type that implements
 **`Inject` to register it to the global container.
 

@@ -2,6 +2,8 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 /// Represents a value from a [`Container`].
+///
+/// [`Container`]: crate::Container
 #[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub enum Resolved<T> {
     /// An owned value.
