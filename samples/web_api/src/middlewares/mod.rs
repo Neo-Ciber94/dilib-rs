@@ -47,7 +47,7 @@ where
         let method = req.method().clone();
 
         // Ignore get requests
-        if method == Method::GET {
+        if !can_log_method(&method) {
             let fut = self.service.call(req);
             return Box::pin(async move {
                 let res = fut.await?;
@@ -96,12 +96,10 @@ where
     }
 }
 
-pub fn generate_message(req: &ServiceRequest) -> Option<String> {
-    match *req.method() {
-        Method::GET => Some("Get".to_owned()),
-        Method::POST => Some("Create".to_owned()),
-        Method::PATCH | Method::PUT => Some("Update".to_owned()),
-        Method::DELETE => Some("Delete".to_owned()),
-        _ => None,
-    }
+fn generate_message(_req: &ServiceRequest) -> Option<String> {
+    None
+}
+
+fn can_log_method(method: &Method) -> bool {
+    matches!(method, &Method::POST | &Method::PATCH | &Method::PUT | &Method::DELETE)
 }

@@ -69,7 +69,7 @@ pub async fn update(
 
     if let Some(mut to_update) = repository.get(id).await {
         to_update.title = data.title.unwrap_or(to_update.title);
-        to_update.content = to_update.content.or_else(|| data.content);
+        to_update.content = to_update.content.or(data.content);
 
         if let Some(task) = repository.update(to_update).await {
             return HttpResponse::Ok().json(task);

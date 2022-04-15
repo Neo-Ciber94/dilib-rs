@@ -103,7 +103,7 @@ where
         if let Some(entities) = STORAGE.write().unwrap().get_mut(&type_id) {
             let map = entities.downcast_mut::<HashMap<u64, T>>().unwrap();
             if let Some(entity_to_delete) = map.remove(&hash) {
-                return Some(entity_to_delete.clone());
+                return Some(entity_to_delete);
             }
         }
 
