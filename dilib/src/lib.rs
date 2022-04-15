@@ -1,5 +1,5 @@
 // Include docs
-#![doc = include_str!("README.md")]
+#![doc = include_str!("../README.md")]
 
 mod lib_macros;
 pub use lib_macros::*;
