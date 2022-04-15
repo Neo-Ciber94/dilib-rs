@@ -12,3 +12,6 @@ struct UserService {
     db: Singleton<Vec<User>>,
 }
 ```
+
+## License
+This project is licensed under the [MIT license](LICENSE).

@@ -1,7 +1,7 @@
 [package]
 name = "dilib-derive"
 description = "Derive proc_macros for the dilib crate"
-version = "0.2.0-alpha"
+version = "0.2.1-alpha"
 authors = ["Freddy L."]
 edition = "2021"
 license-file = "LICENSE"
@@ -20,4 +20,4 @@ syn = { version = "1.0.91" , features=["parsing"]}
 mattro = "0.1.2"
 
 [dev-dependencies]
-#dilib = { path = "../dilib", version="0.2.0-alpha" }
+#dilib = { path = "../dilib", version="0.2.1-alpha" }

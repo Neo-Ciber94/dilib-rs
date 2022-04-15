@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "dilib-derive"
-version = "0.2.0-alpha"
+version = "0.2.1-alpha"
 dependencies = [
  "mattro",
  "proc-macro2",
@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "dilib-macros"
-version = "0.2.0-alpha"
+version = "0.2.1-alpha"
 dependencies = [
  "const_format",
  "mattro",

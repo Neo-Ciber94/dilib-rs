@@ -3,6 +3,8 @@ members = [
     "dilib",
     "dilib-derive",
     "dilib-macros",
+
+    # internal
     "dilib-experimental",
     "test_suite",
     "samples/*"
