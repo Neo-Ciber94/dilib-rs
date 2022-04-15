@@ -21,7 +21,7 @@ use proc_macro::TokenStream;
 /// - `#[inject(scope="singleton")]`: To get a singleton dependency. If the field type is `Arc<T>` or `Singleton<T>` this is the default.
 ///
 /// # Example
-/// ```rust
+/// ```rust,no_run
 /// use std::sync::{Arc, Mutex};
 /// use dilib_derive::Inject;
 ///

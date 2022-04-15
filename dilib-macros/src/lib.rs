@@ -19,7 +19,7 @@ use target::Target;
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,no_run
 /// use dilib::{macros::provide, Inject, Singleton, global::init_container, get_singleton, get_scoped};
 /// use std::sync::Mutex;
 ///
