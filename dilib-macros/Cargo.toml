@@ -17,6 +17,6 @@ mattro = "0.1.2"
 const_format = "0.2.22"
 
 [dev-dependencies]
-dilib = { path = "../dilib", features=["full", "unstable_provide"] }
+dilib = { path="../dilib", features=["full", "unstable_provide"] }
 ctor = "0.1.22"
 

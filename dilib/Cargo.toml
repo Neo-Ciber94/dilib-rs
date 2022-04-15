@@ -38,8 +38,8 @@ lazy = ["once_cell"]
 unstable_provide = ["dilib-macros", "global", "ctor", "lazy"]
 
 [dependencies]
-dilib-derive = { path="../dilib-derive", optional = true }
-dilib-macros = { path = "../dilib-macros", optional = true}
+dilib-derive = { version = "0.2.0-alpha", optional = true }
+dilib-macros = { version = "0.2.0-alpha", optional = true}
 ctor = { version ="0.1.22", optional = true }
 once_cell = { version = "1.10.0", optional = true }
 
