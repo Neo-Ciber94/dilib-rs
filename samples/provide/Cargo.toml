@@ -1,0 +1,8 @@
+[package]
+name = "provide"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dilib = { path = "../../dilib", features = ["full", "unstable_provide"] }
+colored = "2.0.0"
