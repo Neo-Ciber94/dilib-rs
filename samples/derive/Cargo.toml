@@ -1,0 +1,9 @@
+[package]
+name = "derive"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+dilib = { path = "../../dilib", features = ["derive"] }
+colored = "2.0.0"
