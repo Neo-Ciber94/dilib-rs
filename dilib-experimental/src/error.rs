@@ -30,8 +30,8 @@ struct SimpleMessage {
 impl ResolveError {
     /// Constructs a new `ResolveError` from an error.
     pub fn new<E>(error: E) -> Self
-    where
-        E: Into<Box<dyn error::Error + Send + Sync + 'static>>,
+        where
+            E: Into<Box<dyn error::Error + Send + Sync + 'static>>,
     {
         ResolveError {
             inner: Inner::Custom(error.into()),
@@ -39,8 +39,8 @@ impl ResolveError {
     }
     /// Constructs a new `ResolveError` for a dependency missing.
     pub fn missing_dependency<T>() -> Self
-    where
-        T: 'static,
+        where
+            T: 'static,
     {
         ResolveError {
             inner: Inner::MissingDependency(MissingDependency {
@@ -52,9 +52,9 @@ impl ResolveError {
 
     /// Constructs a new `ResolveError` for a dependency with a name missing.
     pub fn missing_dependency_with_name<T, S>(name: S) -> Self
-    where
-        T: 'static,
-        S: Into<String>,
+        where
+            T: 'static,
+            S: Into<String>,
     {
         ResolveError {
             inner: Inner::MissingDependency(MissingDependency {

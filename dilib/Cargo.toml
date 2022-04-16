@@ -9,6 +9,7 @@ license-file = "LICENSE"
 repository = "https://github.com/Neo-Ciber94/dilib-rs/"
 homepage = "https://crates.io/crates/dilib/"
 documentation = "https://docs.rs/dilib/"
+build = "build.rs"
 rust-version = "1.59.0"
 
 [package.metadata.docs.rs]
