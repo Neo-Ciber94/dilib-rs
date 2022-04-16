@@ -1,4 +1,7 @@
 [package]
+# Remember update dependencies in:
+# dilib-derive, dilib-macros, README.md and dilib/README.md
+
 name = "dilib"
 description = "A dependency injection library for Rust"
 keywords = ["rust-patterns"]
@@ -45,5 +48,5 @@ ctor = { version ="0.1.22", optional = true }
 once_cell = { version = "1.10.0", optional = true }
 
 [dev-dependencies]
-#dilib-derive = { path="../dilib-derive", version="0.2.1-alpha" }
-#dilib = { path = ".", version="0.2.2-alpha", features=["full", "unstable_provide"]}
+dilib-derive = { path="../dilib-derive", version="0.2.1-alpha" }
+dilib = { path = ".", version="0.2.2-alpha", features=["full", "unstable_provide"]}

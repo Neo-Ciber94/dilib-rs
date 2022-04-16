@@ -20,4 +20,4 @@ syn = { version = "1.0.91" , features=["parsing"]}
 mattro = "0.1.2"
 
 [dev-dependencies]
-#dilib = { path = "../dilib", version="0.2.2-alpha" }
+dilib = { path = "../dilib", version="0.2.2-alpha" }

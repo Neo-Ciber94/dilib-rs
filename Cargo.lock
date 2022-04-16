@@ -445,6 +445,7 @@ name = "dilib"
 version = "0.2.2-alpha"
 dependencies = [
  "ctor",
+ "dilib",
  "dilib-derive",
  "dilib-macros",
  "once_cell",
@@ -454,6 +455,7 @@ dependencies = [
 name = "dilib-derive"
 version = "0.2.1-alpha"
 dependencies = [
+ "dilib",
  "mattro",
  "proc-macro2",
  "quote",
@@ -472,6 +474,7 @@ name = "dilib-macros"
 version = "0.2.1-alpha"
 dependencies = [
  "const_format",
+ "dilib",
  "mattro",
  "proc-macro2",
  "quote",
