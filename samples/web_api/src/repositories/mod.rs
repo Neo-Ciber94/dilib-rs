@@ -1,6 +1,8 @@
+use std::hash::Hash;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub mod in_memory;
+pub mod storage;
 
 pub trait Entity<Id> {
     fn id(&self) -> &Id;
@@ -10,7 +12,7 @@ pub trait Entity<Id> {
 pub trait Repository<T, Id>
 where
     T: Entity<Id> + Send + Sync + Clone + DeserializeOwned + Serialize,
-    Id: Send + Sync + DeserializeOwned + Serialize,
+    Id: Hash + Eq + Send + Sync + Clone + DeserializeOwned + Serialize,
 {
     async fn get_all(&self) -> Vec<T>;
     async fn get(&self, id: Id) -> Option<T>;

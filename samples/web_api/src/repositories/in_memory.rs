@@ -12,7 +12,7 @@ use std::sync::{Arc, RwLock};
 type ObjectMap = Arc<RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>>;
 
 lazy_static! {
-    static ref STORAGE: ObjectMap = Default::default();
+    static ref MEMORY_STORAGE: ObjectMap = Default::default();
 }
 
 pub struct InMemoryRepository<T, Id> {
@@ -31,13 +31,13 @@ impl<T, Id> Default for InMemoryRepository<T, Id> {
 impl<T, Id> Repository<T, Id> for InMemoryRepository<T, Id>
 where
     T: Entity<Id> + Sync + Send + Clone + DeserializeOwned + Serialize + 'static,
-    Id: Hash + Sync + Send + DeserializeOwned + Serialize,
+    Id: Hash + Eq + Sync + Send + Clone + DeserializeOwned + Serialize,
 {
     async fn get_all(&self) -> Vec<T> {
         let mut result = Vec::new();
         let type_id = TypeId::of::<T>();
 
-        if let Some(entities) = STORAGE.read().unwrap().get(&type_id) {
+        if let Some(entities) = MEMORY_STORAGE.read().unwrap().get(&type_id) {
             let map = entities.downcast_ref::<HashMap<u64, T>>().unwrap();
             for entity in map.values() {
                 result.push(entity.clone());
@@ -50,7 +50,7 @@ where
     async fn get(&self, id: Id) -> Option<T> {
         let type_id = TypeId::of::<T>();
 
-        if let Some(entities) = STORAGE.read().unwrap().get(&type_id) {
+        if let Some(entities) = MEMORY_STORAGE.read().unwrap().get(&type_id) {
             let map = entities.downcast_ref::<HashMap<u64, T>>().unwrap();
             let hash = hash(&id);
             if let Some(entity) = map.get(&hash) {
@@ -64,7 +64,7 @@ where
     async fn add(&mut self, entity: T) -> T {
         let hash = hash(&entity.id());
         let type_id = TypeId::of::<T>();
-        let mut lock = STORAGE.write().unwrap();
+        let mut lock = MEMORY_STORAGE.write().unwrap();
 
         // We only create new map if it doesn't exist
         match lock.entry(type_id) {
@@ -86,7 +86,7 @@ where
         let type_id = TypeId::of::<T>();
         let hash = hash(&entity.id());
 
-        if let Some(entities) = STORAGE.write().unwrap().get_mut(&type_id) {
+        if let Some(entities) = MEMORY_STORAGE.write().unwrap().get_mut(&type_id) {
             let map = entities.downcast_mut::<HashMap<u64, T>>().unwrap();
             if let Some(entity_to_update) = map.get_mut(&hash) {
                 *entity_to_update = entity.clone();
@@ -101,7 +101,7 @@ where
         let type_id = TypeId::of::<T>();
         let hash = hash(&id);
 
-        if let Some(entities) = STORAGE.write().unwrap().get_mut(&type_id) {
+        if let Some(entities) = MEMORY_STORAGE.write().unwrap().get_mut(&type_id) {
             let map = entities.downcast_mut::<HashMap<u64, T>>().unwrap();
             if let Some(entity_to_delete) = map.remove(&hash) {
                 return Some(entity_to_delete);

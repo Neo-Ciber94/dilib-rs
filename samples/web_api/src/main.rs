@@ -1,3 +1,5 @@
+extern crate core;
+
 mod api;
 mod entities;
 mod middlewares;
@@ -15,10 +17,11 @@ use dilib::add_scoped_trait;
 use dilib::global::init_container;
 use entities::audit_log::AuditLog;
 use uuid::Uuid;
+use crate::repositories::storage::StorageRepository;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    init_dependency_injection();
+    init_dependency_injection().await;
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
 
     let port = std::env::var("PORT")
@@ -52,12 +55,17 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-fn init_dependency_injection() {
+async fn init_dependency_injection() {
     init_container(|container| {
         // Scoped
-        add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+        // add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+        //     .unwrap();
+        // add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+        //     .unwrap();
+
+        add_scoped_trait!(container, Repository<TodoTask, Uuid> => StorageRepository::new("todo_tasks"))
             .unwrap();
-        add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+        add_scoped_trait!(container, Repository<AuditLog, Uuid> => StorageRepository::new("audit_logs"))
             .unwrap();
     })
     .unwrap();
