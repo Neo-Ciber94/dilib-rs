@@ -2,6 +2,8 @@
 
 Provides the `#[derive(Inject)]` attribute to implement the `Inject` trait.
 
+
+## Usage
 ```rust
 use dilib::{Inject, Singleton};
 
