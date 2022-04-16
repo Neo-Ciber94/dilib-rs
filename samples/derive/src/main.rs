@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use colored::Colorize;
 use dilib::Container;
 use fruits::*;
@@ -20,14 +19,20 @@ pub struct Fruit {
 
 fn main() {
     let mut container = Container::new();
+
+    // Register the `Db` as a singleton
     container.add_singleton(Db::new(vec![])).unwrap();
+
+    // Register the repository, service and initializer as scoped values
     container.add_deps::<FruitRepository>().unwrap();
     container.add_deps::<FruitService>().unwrap();
     container.add_deps::<DbInitializer>().unwrap();
 
+    // Gets the initializer, this could just be a singleton
     let initializer = container.get::<DbInitializer>().unwrap();
-    initializer.init().unwrap();
+    initializer.init().expect("Failed to initialize the database");
 
+    // Gets the service, calling `get` will returns a new instance of the service each time
     let fruit_service = container.get::<FruitService>().unwrap();
     fruit_service.add_all(vec![
         Fruit { name: "Grapes", color: Color::Green },
@@ -49,6 +54,7 @@ mod fruits {
     use dilib::{Singleton, Inject};
     use crate::{Color, Fruit};
 
+    // The in memory database used to store the fruits
     pub type Db = RwLock<Vec<Fruit>>;
 
     pub trait Repository<T> {
@@ -58,6 +64,9 @@ mod fruits {
 
     #[derive(Inject)]
     pub struct FruitRepository {
+        // Injects the `Db` singleton, `Singleton<T>` is just an alias for `Arc<T>`,
+        // if we just use `Db` type it will try to inject it as a scoped value, so will fail with an error
+        // because the `Db` is registered as a singleton.
         db: Singleton<Db>
     }
 
@@ -73,6 +82,7 @@ mod fruits {
 
     #[derive(Inject)]
     pub struct FruitService {
+        // Injects a new `FruitRepository` scoped instance
         repository: FruitRepository
     }
 
@@ -92,6 +102,7 @@ mod fruits {
         }
     }
 
+    // Injects the `Db` singleton
     #[derive(Inject)]
     pub struct DbInitializer(Singleton<Db>);
 
