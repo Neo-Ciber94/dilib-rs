@@ -7,17 +7,14 @@ mod repositories;
 mod services;
 mod utils;
 
-use crate::entities::todo_task::TodoTask;
 use crate::middlewares::audit_logger;
-use crate::repositories::{in_memory::InMemoryRepository, Repository};
-use crate::services::audit_log_service::AuditLogService;
+use crate::services::AuditLogService;
 use actix_web::middleware;
 use actix_web::{web, App, HttpServer};
 use dilib::add_scoped_trait;
 use dilib::global::init_container;
-use entities::audit_log::AuditLog;
+use entities::{AuditLog, TodoTask};
 use uuid::Uuid;
-use crate::repositories::storage::StorageRepository;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -56,6 +53,9 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn init_dependency_injection() {
+    #[allow(unused_imports)]
+    use crate::repositories::{InMemoryRepository, StorageRepository, Repository};
+
     init_container(|container| {
         // Scoped
         // add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())

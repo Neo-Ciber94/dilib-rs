@@ -1,4 +1,4 @@
-use crate::entities::audit_log::LogLevel;
+use crate::entities::LogLevel;
 use crate::utils::Type;
 use crate::{AuditLog, AuditLogService};
 use actix_web::http::Method;
@@ -116,7 +116,7 @@ fn generate_message<T: 'static>(_req: &ServiceRequest) -> Option<String> {
     }
 
     let ty = Type::of::<T>();
-    let message = format!("On resource: {}", ty.name());
+    let message = format!("resource: {}", ty.name());
     return Some(message);
 }
 

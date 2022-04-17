@@ -1,6 +1,4 @@
-use crate::repositories::Entity;
-use crate::Repository;
-use once_cell::sync::OnceCell;
+use crate::repositories::{Entity, Repository};
 use serde::{de::DeserializeOwned, Serialize};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -8,27 +6,19 @@ use std::hash::Hash;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use serde_json::Value;
 use tokio::io::Error;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, OnceCell};
 
-type DataMap = HashMap<String, HashMap<String, String>>;
+type DataMap = HashMap<String, HashMap<String, Value>>;
 
-static IS_INIT: AtomicBool = AtomicBool::new(false);
-static PHYSICAL_STORAGE: OnceCell<RwLock<PhysicalStorage>> = OnceCell::new();
+static PHYSICAL_STORAGE: OnceCell<RwLock<PhysicalStorage>> = OnceCell::const_new();
 
 async fn get_physical_storage() -> &'static RwLock<PhysicalStorage> {
-    if !IS_INIT.load(Ordering::SeqCst) {
-        let physical_storage = PhysicalStorage::load("data/data.json")
-            .await
-            .expect("Failed to load data");
-
-        let ret = PHYSICAL_STORAGE.get_or_init(|| RwLock::new(physical_storage));
-        IS_INIT.store(true, Ordering::SeqCst);
-        return ret;
-    }
-
-    PHYSICAL_STORAGE.get().unwrap()
+    PHYSICAL_STORAGE.get_or_init(|| async {
+        let physical_storage = PhysicalStorage::load("data/data.json").await.unwrap();
+        RwLock::new(physical_storage)
+    }).await
 }
 
 struct PhysicalStorage {
@@ -76,9 +66,9 @@ impl PhysicalStorage {
     {
         if let Some(map) = self.inner.get(key) {
             let mut result = HashMap::new();
-            for (id, json) in map {
-                let key = serde_json::from_str::<K>(&id).expect("Failed to parse key");
-                let value = serde_json::from_str::<V>(&json).expect("Failed to parse value");
+            for (map_id, map_key) in map {
+                let key = serde_json::from_str::<K>(&map_id).expect("Failed to parse key");
+                let value = serde_json::from_value::<V>(map_key.clone()).expect("Failed to parse value");
                 result.insert(key, value);
             }
             Ok(result)
@@ -110,7 +100,7 @@ impl PhysicalStorage {
             .iter()
             .map(|(k, v)| {
                 let key_json = serde_json::to_string(k).unwrap();
-                let value_json = serde_json::to_string(v).unwrap();
+                let value_json = serde_json::to_value(v).unwrap();
                 (key_json, value_json)
             })
             .collect();

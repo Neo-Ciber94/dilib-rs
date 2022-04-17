@@ -1,2 +1,7 @@
-pub mod audit_log;
-pub mod todo_task;
+mod audit_log;
+mod todo_task;
+
+pub use {
+    audit_log::*,
+    todo_task::*,
+};

@@ -1,5 +1,5 @@
-use crate::entities::audit_log::AuditLog;
-use crate::Repository;
+use crate::entities::AuditLog;
+use crate::repositories::Repository;
 use actix_web::web::Path;
 use actix_web::{get, HttpResponse, Responder};
 use dilib::resolve;

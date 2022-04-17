@@ -1,8 +1,13 @@
 use std::hash::Hash;
 use serde::{de::DeserializeOwned, Serialize};
 
-pub mod in_memory;
-pub mod storage;
+mod memory;
+mod storage;
+
+pub use {
+    memory::InMemoryRepository,
+    storage::StorageRepository,
+};
 
 pub trait Entity<Id> {
     fn id(&self) -> &Id;

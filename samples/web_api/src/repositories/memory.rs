@@ -1,5 +1,4 @@
-use crate::repositories::Entity;
-use crate::Repository;
+use crate::repositories::{Entity, Repository};
 use lazy_static::lazy_static;
 use serde::{de::DeserializeOwned, Serialize};
 use std::any::{Any, TypeId};

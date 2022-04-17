@@ -1,5 +1,5 @@
-use crate::entities::todo_task::TodoTask;
-use crate::Repository;
+use crate::entities::TodoTask;
+use crate::repositories::Repository;
 use actix_web::web::{Json, Path};
 use actix_web::{delete, get, post, put, HttpRequest, HttpResponse, Responder};
 use dilib::get_scoped;
