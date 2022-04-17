@@ -52,21 +52,34 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
+#[allow(dead_code)]
 async fn init_dependency_injection() {
-    #[allow(unused_imports)]
     use crate::repositories::{InMemoryRepository, StorageRepository, Repository};
+
+    // Used for the sake of the example
+    enum RepositoryType {
+        InMemory,
+        Storage,
+    }
+
+    const REPOSITORY_TYPE: RepositoryType = RepositoryType::InMemory;
 
     init_container(|container| {
         // Scoped
-        // add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
-        //     .unwrap();
-        // add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
-        //     .unwrap();
-
-        add_scoped_trait!(container, Repository<TodoTask, Uuid> => StorageRepository::new("todo_tasks"))
-            .unwrap();
-        add_scoped_trait!(container, Repository<AuditLog, Uuid> => StorageRepository::new("audit_logs"))
-            .unwrap();
+        match REPOSITORY_TYPE {
+            RepositoryType::InMemory => {
+                add_scoped_trait!(container, Repository<TodoTask, Uuid> => InMemoryRepository::default())
+                    .unwrap();
+                add_scoped_trait!(container, Repository<AuditLog, Uuid> => InMemoryRepository::default())
+                    .unwrap();
+            }
+            RepositoryType::Storage => {
+                add_scoped_trait!(container, Repository<TodoTask, Uuid> => StorageRepository::new("todo_tasks"))
+                    .unwrap();
+                add_scoped_trait!(container, Repository<AuditLog, Uuid> => StorageRepository::new("audit_logs"))
+                    .unwrap();
+            }
+        }
     })
     .unwrap();
 }
