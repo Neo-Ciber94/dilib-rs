@@ -8,3 +8,4 @@ publish = false
 
 [dependencies]
 dilib = { path ="../dilib", features=["full", "unstable_provide"] }
+casey = "0.3.3"

@@ -308,6 +308,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "casey"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fabe85130dda9cf267715582ce6cf1ab581c8dfe3cb33f7065fee0f14e3fea14"
+dependencies = [
+ "syn",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -485,6 +494,7 @@ dependencies = [
 name = "dilib-experimental"
 version = "0.0.0"
 dependencies = [
+ "casey",
  "dilib",
 ]
 
@@ -1437,7 +1447,6 @@ dependencies = [
  "futures-util",
  "lazy_static",
  "log",
- "once_cell",
  "serde",
  "serde_json",
  "tokio",

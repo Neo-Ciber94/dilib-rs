@@ -19,13 +19,12 @@ macro_rules! impl_resolve_call_fn {
          $($t: Send + Sync + 'static),+ {
             type Output = Out;
             fn resolve_call(&self, container: &Container) -> Self::Output {
-                (self)(
-                    $(
-                        container.get::<$t>()
-                            .as_ref()
-                            .unwrap_or_else(|| panic!("unable to get {}", std::any::type_name::<$t>()))
-                    ),+
-                )
+                $(
+                    let casey::lower!($t) = container.get::<$t>()
+                        .unwrap_or_else(|| panic!("unable to get {}", std::any::type_name::<$t>()));
+                )+
+
+                (self)($( &casey::lower!($t) ),+)
             }
         }
     };
@@ -36,13 +35,12 @@ macro_rules! impl_resolve_call_fn {
          $($t: Send + Sync + 'static),+ {
             type Output = Out;
             fn resolve_call_mut(&mut self, container: &Container) -> Self::Output {
-                (self)(
-                    $(
-                        container.get::<$t>()
-                            .as_ref()
-                            .unwrap_or_else(|| panic!("unable to get '{}'", std::any::type_name::<$t>()))
-                    ),+
-                )
+                $(
+                    let casey::lower!($t) = container.get::<$t>()
+                        .unwrap_or_else(|| panic!("unable to get {}", std::any::type_name::<$t>()));
+                )+
+
+                (self)($( &casey::lower!($t) ),+)
             }
         }
     };
