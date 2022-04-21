@@ -175,6 +175,19 @@ impl<'a> Container<'a> {
         self.get_internal::<T>(Some(name))
     }
 
+    /// Returns all the values registered for the given type.
+    pub fn get_all<T>(&self) -> Vec<Resolved<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        let type_id = TypeId::of::<T>();
+        self.iter()
+            .filter(|(key, _)| key.type_id() == type_id)
+            .map(|(_, provider)| self.get_resolver_for(provider))
+            .flatten()
+            .collect()
+    }
+
     /// Returns a value registered for the given type, or `None`
     /// if no provider is register for the given type.
     #[inline]
@@ -291,23 +304,30 @@ impl<'a> Container<'a> {
         let key = InjectionKey::new(type_id, name);
 
         if let Some(provider) = self.providers.get(&key) {
-            match provider {
-                Provider::Scoped(x) => match x {
-                    Scoped::Factory(_) => x.call_factory().map(|x| Resolved::Scoped(x)),
-                    Scoped::Construct(_) => x.call_construct(self).map(|x| Resolved::Scoped(x)),
-                },
-                Provider::Singleton(x) => match x {
-                    Shared::Instance(_) => x.get().map(Resolved::Singleton),
-
-                    #[cfg(feature = "lazy")]
-                    Shared::Lazy(_) => x.get_with(self).map(Resolved::Singleton),
-
-                    #[cfg(not(feature = "lazy"))]
-                    Shared::__NonExhaustive(_) => None,
-                },
-            }
+            self.get_resolver_for(provider)
         } else {
             None
+        }
+    }
+
+    pub fn get_resolver_for<T>(&self, provider: &Provider) -> Option<Resolved<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        match provider {
+            Provider::Scoped(x) => match x {
+                Scoped::Factory(_) => x.call_factory().map(|x| Resolved::Scoped(x)),
+                Scoped::Construct(_) => x.call_construct(self).map(|x| Resolved::Scoped(x)),
+            },
+            Provider::Singleton(x) => match x {
+                Shared::Instance(_) => x.get().map(Resolved::Singleton),
+
+                #[cfg(feature = "lazy")]
+                Shared::Lazy(_) => x.get_with(self).map(Resolved::Singleton),
+
+                #[cfg(not(feature = "lazy"))]
+                Shared::__NonExhaustive(_) => None,
+            },
         }
     }
 
@@ -702,5 +722,24 @@ mod tests {
             Some(&false),
             container.get_with_name::<bool>("falsy").as_deref()
         );
+    }
+
+    #[test]
+    fn get_all_test() {
+        let mut container = Container::new();
+        container.add_scoped(|| 69_i32).unwrap();
+        container.add_scoped_with_name("truthy", || 42_i32).unwrap();
+        container.add_singleton_with_name("funny_number", 420_i32).unwrap();
+
+        let values = container.get_all::<i32>();
+        assert_eq!(3, values.len());
+
+        let x1 = values.iter().find(|v| *v.as_ref() == 69_i32).unwrap();
+        let x2 = values.iter().find(|v| *v.as_ref() == 42_i32).unwrap();
+        let x3 = values.iter().find(|v| *v.as_ref() == 420_i32).unwrap();
+
+        assert_eq!(69_i32, x1.cloned());
+        assert_eq!(42_i32, x2.cloned());
+        assert_eq!(420_i32, x3.cloned());
     }
 }
