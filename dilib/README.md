@@ -336,7 +336,7 @@ assert_eq!(*num, 123);
 
 ### Why "unstable_provide"?
 The feature `unstable_provide` make possible to have dependency
-injection more similar to other frameworks like C# `EF Core` or Java `Sprint`.
+injection more similar to other frameworks like C# `EF Core` or Java `Spring`.
 
 To allow run code before main we use the the [ctor](https://github.com/mmastrac/rust-ctor) crate,
 which have been tested in several OS, so depending on where you run your application this feature
