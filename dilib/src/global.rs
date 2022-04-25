@@ -136,7 +136,13 @@ where
                 for InjectProvider { key, provider, .. } in providers {
                     container
                         .add_provider_internal(key.clone(), provider)
-                        .unwrap_or_else(|_| panic!("Failed to add provider for key: {:?}", key));
+                        .unwrap_or_else(|_| {
+                            match key.name() {
+                                // TODO: Track actual type name for debugging
+                                Some(s) => panic!("Provider for '{}' already exists", s),
+                                None => panic!("Provider for '{:?}' already exists", key.type_id()),
+                            }
+                        });
                 }
             }
 
@@ -309,3 +315,52 @@ mod tests {
         assert!(GLOBAL_CONTAINER.get().is_some());
     }
 }
+
+/// Test for `provide` proc_macro
+/// ```should_panic
+/// use dilib::{provide, global::init_container };
+///
+///  #[provide]
+///  #[allow(dead_code)]
+///  fn get_data() -> u32 {
+///     10
+///  }
+///
+///  #[provide]
+///  #[allow(dead_code)]
+///  fn get_num() -> u32 {
+///     65
+///  }
+///
+///  fn main() {
+///     init_container(|_|{}).unwrap();
+///  }
+/// ```
+#[allow(dead_code)]
+#[cfg(all(doctest, feature = "unstable_provide"))]
+fn provide_test_1() {}
+
+/// Test for `provide` proc_macro
+/// ```should_panic
+/// #[macro_use]
+/// use dilib::{provide, global::init_container };
+///
+///  #[provide(name="text")]
+///  #[allow(dead_code)]
+///  fn get_data() -> String {
+///     "hello".to_owned()
+///  }
+///
+///  #[provide(name="text")]
+///  #[allow(dead_code)]
+///  fn get_text() -> String {
+///    "world".to_owned()
+///  }
+///
+///  fn main() {
+///     init_container(|_|{}).unwrap();
+///  }
+/// ```
+#[allow(dead_code)]
+#[cfg(all(doctest, feature = "unstable_provide"))]
+fn provide_test_2() {}
