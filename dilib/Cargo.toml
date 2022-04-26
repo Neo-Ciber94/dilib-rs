@@ -50,3 +50,13 @@ once_cell = { version = "1.10.0", optional = true }
 [dev-dependencies]
 dilib-derive = { path="../dilib-derive", version="0.2.1-alpha" }
 dilib = { path = ".", version="0.2.2-alpha", features=["full", "unstable_provide"]}
+
+# Benchmark
+criterion = "0.3"
+
+[lib]
+bench = false
+
+[[bench]]
+name = "bench_main"
+harness = false
