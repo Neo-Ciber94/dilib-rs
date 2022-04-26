@@ -183,8 +183,7 @@ impl<'a> Container<'a> {
         let type_id = TypeId::of::<T>();
         self.iter()
             .filter(|(key, _)| key.type_id() == type_id)
-            .map(|(_, provider)| self.get_resolver_for(provider))
-            .flatten()
+            .filter_map(|(_, provider)| self.get_resolver_for(provider))
             .collect()
     }
 
