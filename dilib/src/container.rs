@@ -357,6 +357,7 @@ impl<'a> Container<'a> {
 /// ```
 /// use dilib::Container;
 ///
+/// #[inline(never)]
 /// fn assert_send_sync<T: Send + Sync>() {}
 /// assert_send_sync::<Container>();
 /// ```
