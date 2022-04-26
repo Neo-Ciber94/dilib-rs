@@ -729,7 +729,9 @@ mod tests {
         let mut container = Container::new();
         container.add_scoped(|| 69_i32).unwrap();
         container.add_scoped_with_name("truthy", || 42_i32).unwrap();
-        container.add_singleton_with_name("funny_number", 420_i32).unwrap();
+        container
+            .add_singleton_with_name("funny_number", 420_i32)
+            .unwrap();
 
         let values = container.get_all::<i32>();
         assert_eq!(3, values.len());

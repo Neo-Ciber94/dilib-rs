@@ -1,24 +1,26 @@
 use crate::repositories::{Entity, Repository};
 use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io::ErrorKind;
 use std::marker::PhantomData;
 use std::path::PathBuf;
-use serde_json::Value;
 use tokio::io::Error;
-use tokio::sync::{RwLock, OnceCell};
+use tokio::sync::{OnceCell, RwLock};
 
 type DataMap = HashMap<String, HashMap<String, Value>>;
 
 static PHYSICAL_STORAGE: OnceCell<RwLock<PhysicalStorage>> = OnceCell::const_new();
 
 async fn get_physical_storage() -> &'static RwLock<PhysicalStorage> {
-    PHYSICAL_STORAGE.get_or_init(|| async {
-        let physical_storage = PhysicalStorage::load("data/data.json").await.unwrap();
-        RwLock::new(physical_storage)
-    }).await
+    PHYSICAL_STORAGE
+        .get_or_init(|| async {
+            let physical_storage = PhysicalStorage::load("data/data.json").await.unwrap();
+            RwLock::new(physical_storage)
+        })
+        .await
 }
 
 struct PhysicalStorage {
@@ -68,7 +70,8 @@ impl PhysicalStorage {
             let mut result = HashMap::new();
             for (map_id, map_key) in map {
                 let key = serde_json::from_str::<K>(&map_id).expect("Failed to parse key");
-                let value = serde_json::from_value::<V>(map_key.clone()).expect("Failed to parse value");
+                let value =
+                    serde_json::from_value::<V>(map_key.clone()).expect("Failed to parse value");
                 result.insert(key, value);
             }
             Ok(result)

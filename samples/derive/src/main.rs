@@ -14,7 +14,7 @@ pub enum Color {
 #[derive(Debug, Clone)]
 pub struct Fruit {
     name: &'static str,
-    color: Color
+    color: Color,
 }
 
 fn main() {
@@ -30,29 +30,46 @@ fn main() {
 
     // Gets the initializer, this could just be a singleton
     let initializer = container.get::<DbInitializer>().unwrap();
-    initializer.init().expect("Failed to initialize the database");
+    initializer
+        .init()
+        .expect("Failed to initialize the database");
 
     // Gets the service, calling `get` will returns a new instance of the service each time
     let fruit_service = container.get::<FruitService>().unwrap();
     fruit_service.add_all(vec![
-        Fruit { name: "Grapes", color: Color::Green },
-        Fruit { name: "Raspberries", color: Color::Red },
+        Fruit {
+            name: "Grapes",
+            color: Color::Green,
+        },
+        Fruit {
+            name: "Raspberries",
+            color: Color::Red,
+        },
     ]);
 
     let red_fruits = fruit_service.get_all_by_color(Some(Color::Red));
-    println!("Red Fruits: {}", format!("{:#?}", red_fruits).as_str().bright_red());
+    println!(
+        "Red Fruits: {}",
+        format!("{:#?}", red_fruits).as_str().bright_red()
+    );
 
     let yellow_fruits = fruit_service.get_all_by_color(Some(Color::Yellow));
-    println!("Yellow Fruits: {}", format!("{:#?}", yellow_fruits).as_str().bright_yellow());
+    println!(
+        "Yellow Fruits: {}",
+        format!("{:#?}", yellow_fruits).as_str().bright_yellow()
+    );
 
     let all_fruits = fruit_service.get_all_by_color(None);
-    println!("All Fruits: {}", format!("{:#?}", all_fruits).as_str().bright_cyan());
+    println!(
+        "All Fruits: {}",
+        format!("{:#?}", all_fruits).as_str().bright_cyan()
+    );
 }
 
 mod fruits {
-    use std::sync::RwLock;
-    use dilib::{Singleton, Inject};
     use crate::{Color, Fruit};
+    use dilib::{Inject, Singleton};
+    use std::sync::RwLock;
 
     // The in memory database used to store the fruits
     pub type Db = RwLock<Vec<Fruit>>;
@@ -67,7 +84,7 @@ mod fruits {
         // Injects the `Db` singleton, `Singleton<T>` is just an alias for `Arc<T>`,
         // if we just use `Db` type it will try to inject it as a scoped value, so will fail with an error
         // because the `Db` is registered as a singleton.
-        db: Singleton<Db>
+        db: Singleton<Db>,
     }
 
     impl Repository<Fruit> for FruitRepository {
@@ -83,11 +100,14 @@ mod fruits {
     #[derive(Inject)]
     pub struct FruitService {
         // Injects a new `FruitRepository` scoped instance
-        repository: FruitRepository
+        repository: FruitRepository,
     }
 
     impl FruitService {
-        pub fn add_all<I>(&self, fruits: I) where I: IntoIterator<Item=Fruit> {
+        pub fn add_all<I>(&self, fruits: I)
+        where
+            I: IntoIterator<Item = Fruit>,
+        {
             for fruit in fruits {
                 self.repository.add(fruit);
             }
@@ -97,7 +117,7 @@ mod fruits {
             let fruits = self.repository.get_all();
             match color {
                 Some(color) => fruits.into_iter().filter(|f| f.color == color).collect(),
-                None => fruits
+                None => fruits,
             }
         }
     }
@@ -118,23 +138,74 @@ mod fruits {
             }
 
             let fruits = vec![
-                Fruit { name: "Apple", color: Color::Red },
-                Fruit { name: "Banana", color: Color::Yellow },
-                Fruit { name: "Orange", color: Color::Orange },
-                Fruit { name: "Pear", color: Color::Green },
-                Fruit { name: "Strawberry", color: Color::Red },
-                Fruit { name: "Watermelon", color: Color::Green },
-                Fruit { name: "Kiwi", color: Color::Green },
-                Fruit { name: "Pineapple", color: Color::Yellow },
-                Fruit { name: "Mango", color: Color::Orange },
-                Fruit { name: "Cherry", color: Color::Red },
-                Fruit { name: "Papaya", color: Color::Yellow },
-                Fruit { name: "Avocado", color: Color::Green },
-                Fruit { name: "Pomegranate", color: Color::Red },
-                Fruit { name: "Passionfruit", color: Color::Orange },
-                Fruit { name: "Coconut", color: Color::Green },
-                Fruit { name: "Lemon", color: Color::Yellow },
-                Fruit { name: "Lime", color: Color::Green },
+                Fruit {
+                    name: "Apple",
+                    color: Color::Red,
+                },
+                Fruit {
+                    name: "Banana",
+                    color: Color::Yellow,
+                },
+                Fruit {
+                    name: "Orange",
+                    color: Color::Orange,
+                },
+                Fruit {
+                    name: "Pear",
+                    color: Color::Green,
+                },
+                Fruit {
+                    name: "Strawberry",
+                    color: Color::Red,
+                },
+                Fruit {
+                    name: "Watermelon",
+                    color: Color::Green,
+                },
+                Fruit {
+                    name: "Kiwi",
+                    color: Color::Green,
+                },
+                Fruit {
+                    name: "Pineapple",
+                    color: Color::Yellow,
+                },
+                Fruit {
+                    name: "Mango",
+                    color: Color::Orange,
+                },
+                Fruit {
+                    name: "Cherry",
+                    color: Color::Red,
+                },
+                Fruit {
+                    name: "Papaya",
+                    color: Color::Yellow,
+                },
+                Fruit {
+                    name: "Avocado",
+                    color: Color::Green,
+                },
+                Fruit {
+                    name: "Pomegranate",
+                    color: Color::Red,
+                },
+                Fruit {
+                    name: "Passionfruit",
+                    color: Color::Orange,
+                },
+                Fruit {
+                    name: "Coconut",
+                    color: Color::Green,
+                },
+                Fruit {
+                    name: "Lemon",
+                    color: Color::Yellow,
+                },
+                Fruit {
+                    name: "Lime",
+                    color: Color::Green,
+                },
             ];
 
             db.write().unwrap().extend(fruits);

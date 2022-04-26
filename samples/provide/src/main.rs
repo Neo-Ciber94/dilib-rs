@@ -1,7 +1,7 @@
 use crate::app::DbSeeder;
-use std::collections::HashMap;
 use app::Repository;
 use dilib::{global::init_container, resolve};
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 #[allow(dead_code)]
@@ -29,22 +29,23 @@ fn main() {
     let seeder = resolve!(DbSeeder).expect("Failed to resolve DbSeeder");
     seeder.init_db().unwrap();
 
-    let food_repository = resolve!(trait Repository<Food>)
-        .expect("Failed to resolve FoodRepository");
+    let food_repository =
+        resolve!(trait Repository<Food>).expect("Failed to resolve FoodRepository");
 
-    let restaurant_repository = resolve!(trait Repository<Restaurant>)
-        .expect("Failed to resolve RestaurantRepository");
+    let restaurant_repository =
+        resolve!(trait Repository<Restaurant>).expect("Failed to resolve RestaurantRepository");
 
     // Makes a join to get the restaurant menus
     let restaurant_menus = restaurant_repository
         .get_all()
         .iter()
         .map(|res| {
-           let foods = food_repository.get_all()
-               .iter()
-               .filter(|f| f.restaurant == res.id)
-               .cloned()
-               .collect::<Vec<Food>>();
+            let foods = food_repository
+                .get_all()
+                .iter()
+                .filter(|f| f.restaurant == res.id)
+                .cloned()
+                .collect::<Vec<Food>>();
 
             (res.name, foods)
         })

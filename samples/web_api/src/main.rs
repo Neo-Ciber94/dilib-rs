@@ -54,7 +54,7 @@ async fn main() -> std::io::Result<()> {
 
 #[allow(dead_code)]
 async fn init_dependency_injection() {
-    use crate::repositories::{InMemoryRepository, StorageRepository, Repository};
+    use crate::repositories::{InMemoryRepository, Repository, StorageRepository};
 
     // Used for the sake of the example
     enum RepositoryType {

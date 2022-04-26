@@ -12,6 +12,7 @@ use {crate::Container, late_init::LateInit};
 pub enum Shared<'a> {
     /// A single instance of the value.
     Instance(Arc<dyn Any + Send + Sync>),
+
     #[cfg(feature = "lazy")]
     /// A factory function to create the single value.
     Lazy(Arc<LateInit<Arc<dyn Any + Send + Sync>, &'a Container<'a>, BoxedOnceFn>>),
