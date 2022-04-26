@@ -77,22 +77,20 @@ printer.print(&es.greet());
 - [Derive Inject](#derive-inject)
 - [Global Container](#global-container)
 - [Provide](#provide)
-  - [Why "unstable_provide"?](#why-unstable-provide)
+  - [Why 'unstable_provide'?](#why-unstable_provide)
   - [provide macro](#provide-macro)
 
 ## Container
 
-The container is the main storage for the provides,
-it stores 2 types of providers:
-- `Scoped`: provides a new instance every time it is requested
-- `Singleton`: provides a single instance
+The container is the main storage for the 2 types of provides:
+- `Scoped`: creates a new instance each time
+- `Singleton`: returns the same instance each time
 
-All this provides can be named or unnamed, using the 
-methods that ends with `with_name(...)`.
+All these providers can be named using the methods ended with `with_name(...)`.
 
 ### Scoped provider
 
-The scoped providers provide a new instance every time they are requested.
+The scoped providers creates a new instance each time they are called.
 
 ```rust
 use dilib::Container;
@@ -106,7 +104,7 @@ assert_eq!(s.as_ref(), "Apple Pie");
 
 ### Singleton provider
 
-The singleton providers provide a single instance.
+The singleton providers returns the same instance each time they are called.
 
 ```rust
 use dilib::Container;
@@ -125,11 +123,11 @@ assert_eq!(*c2.lock().unwrap(), 3);
 ```
 
 ### Inject trait
-The `Inject` trait provide a way to construct a type using the 
-providers of the container.
+The `Inject` trait is a mechanism to create a type using the 
+providers of a container.
 
 To add a type that implements `Inject` to the container,
-you use the `add_deps` methods, this add the type as a `Scoped` provider.
+you use the `add_deps` methods, this adds the type as a `Scoped` provider.
 
 ```rust
 use std::sync::{Mutex, atomic::AtomicUsize};
@@ -173,21 +171,24 @@ assert_eq!(f2.tag, "b18ap31");
 ```
 
 ### Bind trait to implementation
-Instead of adding a type directly to the container
-you can bind a trait to its implementation using the macros:
+To add a trait to a container you should
+bind the trait to its implementation using the macros:
 - `add_scoped_trait!(container, name, trait => impl)`
 - `add_singleton_trait!(container, name, trait => impl)`
 - `add_scoped_trait!(container, name, trait @ Inject)`
 - `add_singleton_trait!(container, name, trait @ Inject)`
-
-The `name` is optional.
+> The `name` is optional.
+> 
+This adds the trait as a `Box<dyn Trait>`.
 
 And you can get the values back using:
 - `get_scoped_trait!(container, name, trait)`
 - `get_singleton_trait!(container, name, trait)`
 - `get_resolved_trait(container, name, trait)`
 
-The `name` is also optional.
+> The `name` is also optional.
+> 
+This returns the trait as a `Box<dyn Trait>`.
 
 ```rust
 use dilib::{
@@ -261,7 +262,7 @@ There are 3 ways to retrieve a value from the container:
 - `get_scoped`
 - `get_singleton`
 
-And it named variants:
+And it's named variants:
 - `get_with_name`
 - `get_scoped_with_name`
 - `get_singleton_with_name`
@@ -271,18 +272,19 @@ a value from a `scoped` or `singleton` provider.
 
 But `get` can get any `scoped` and `singleton` value,
 the difference is that `get` returns a `Resolved<T>`
-and the others returns a `T` or `Arc<T>` for singletons.
+and the others returns a `T` (scoped) or `Arc<T>` (singletons).
 
 `Resolved<T>` is just an enum for a `Scoped(T)` and `Singleton(Arc<T>)`
 where you can convert it back using `into_scoped` or `into_singleton`,
-the advantage of get is that it implements `Deref` to use the value and its just easier
-to call `get`.
+it also implements `Deref` over `T`.
 
 ## Derive Inject
 > This requires the `derive` feature.
 
-Inject is implemented for all types that implement `Default`.
-and can be used with `#[derive]`.
+Inject is implemented for all types that implement `Default`
+and can be auto-implemented using `#[derive]`. When using the `derive`
+types `Arc<T>` and `Singleton<T>` will be injected as singleton,
+and other types as scoped unless specified.
 
 ```rust
 use dilib::{Singleton, Inject, Container};
@@ -312,8 +314,8 @@ assert_eq!(apple.price, 2.0);
 > This requires the `global` feature.
 
 `dilib` also offers a global container so you don't require
-to declare your own container, and it's easier to access the container
-with macros like `get_scoped!`, `get_singleton!`or just `get_resolved!`,
+to declare your own, you can access the values of the container 
+using `get_scoped!`, `get_singleton!`or `get_resolved!`,
 you can also access the container directly using `get_container()`.
 
 ```rust
@@ -334,13 +336,12 @@ assert_eq!(*num, 123);
 ## Provide
 > This requires the `unstable_provide` feature.
 
-### Why "unstable_provide"?
+### Why unstable_provide?
 The feature `unstable_provide` make possible to have dependency
 injection more similar to other frameworks like C# `EF Core` or Java `Spring`.
 
 To allow run code before main we use the the [ctor](https://github.com/mmastrac/rust-ctor) crate,
-which have been tested in several OS, so depending on where you run your application this feature
-may not be unstable for your use case.
+which have been tested in several OS so is stable for most of the use cases.
 
 ### provide macro
 You can use the `#[provide]` macro over any function or type that implements
