@@ -352,6 +352,17 @@ impl<'a> Container<'a> {
     }
 }
 
+/// Ensure the `Container` is `Sync` and `Send`
+///
+/// ```
+/// use dilib::Container;
+///
+/// fn assert_send_sync<T: Send + Sync>() {}
+/// assert_send_sync::<Container>();
+/// ```
+#[cfg(doctest)]
+fn _dummy() {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

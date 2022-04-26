@@ -96,7 +96,8 @@ pub mod late_init {
         _marker: PhantomData<Arg>,
     }
 
-    unsafe impl<T: Sync, Arg: Sync, F: Send> Sync for LateInit<T, Arg, F> {}
+    // SAFETY: `F` is only used once and its synchronized
+    unsafe impl<T, Arg, F: Send> Sync for LateInit<T, Arg, F> {}
 
     impl<T, Arg, F> LateInit<T, Arg, F> {
         /// Constructs a new `LateInit<T>` with the given function.
