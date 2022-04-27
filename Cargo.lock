@@ -611,11 +611,10 @@ dependencies = [
 
 [[package]]
 name = "dilib"
-version = "0.2.2-alpha"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "ctor",
- "dilib",
  "dilib-derive",
  "dilib-macros",
  "once_cell",
@@ -623,9 +622,8 @@ dependencies = [
 
 [[package]]
 name = "dilib-derive"
-version = "0.2.1-alpha"
+version = "0.2.0"
 dependencies = [
- "dilib",
  "mattro",
  "proc-macro2",
  "quote",
@@ -642,10 +640,9 @@ dependencies = [
 
 [[package]]
 name = "dilib-macros"
-version = "0.2.1-alpha"
+version = "0.2.0"
 dependencies = [
  "const_format",
- "dilib",
  "mattro",
  "proc-macro2",
  "quote",
