@@ -14,7 +14,7 @@ homepage = "https://crates.io/crates/dilib/"
 documentation = "https://docs.rs/dilib/"
 build = "build.rs"
 rust-version = "1.59.0"
-include = ["src"]
+exclude = ["benches"]
 
 [package.metadata.docs.rs]
 all-features = true
