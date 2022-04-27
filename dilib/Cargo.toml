@@ -58,4 +58,5 @@ bench = false
 
 [[bench]]
 name = "bench_main"
+path = "benches/bench_main.rs"
 harness = false
