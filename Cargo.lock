@@ -615,6 +615,7 @@ version = "0.2.0"
 dependencies = [
  "criterion",
  "ctor",
+ "dilib",
  "dilib-derive",
  "dilib-macros",
  "once_cell",
@@ -624,6 +625,7 @@ dependencies = [
 name = "dilib-derive"
 version = "0.2.0"
 dependencies = [
+ "dilib",
  "mattro",
  "proc-macro2",
  "quote",
@@ -643,6 +645,7 @@ name = "dilib-macros"
 version = "0.2.0"
 dependencies = [
  "const_format",
+ "dilib",
  "mattro",
  "proc-macro2",
  "quote",
