@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use std::borrow::Cow;
 
-/// Represents an unique key for value provider.
+/// Represents an unique key for identify a provider.
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct InjectionKey<'a> {
     type_id: TypeId,

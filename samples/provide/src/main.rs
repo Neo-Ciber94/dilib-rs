@@ -30,10 +30,10 @@ fn main() {
     seeder.init_db().unwrap();
 
     let food_repository =
-        resolve!(trait Repository<Food>).expect("Failed to resolve FoodRepository");
+        resolve!(trait Repository<Food>).expect("Failed to resolve Repository<Food>");
 
     let restaurant_repository =
-        resolve!(trait Repository<Restaurant>).expect("Failed to resolve RestaurantRepository");
+        resolve!(trait Repository<Restaurant>).expect("Failed to resolve Repository<Restaurant>");
 
     // Makes a join to get the restaurant menus
     let restaurant_menus = restaurant_repository

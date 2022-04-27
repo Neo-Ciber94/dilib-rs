@@ -43,7 +43,7 @@ impl<T> Resolved<T> {
         }
     }
 
-    /// Attempts to downcast the value to a value.
+    /// Attempts to downcast the value to a scoped.
     pub fn into_scoped(self) -> Option<T> {
         match self {
             Resolved::Scoped(t) => Some(t),

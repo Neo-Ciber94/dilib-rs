@@ -3,9 +3,8 @@ name = "dilib-experimental"
 description = "Here I just throw things that may or may not be released"
 version = "0.0.0"
 edition = "2021"
-rust-version = "1.59.0"
 publish = false
 
 [dependencies]
-dilib = { path ="../dilib", features=["full", "unstable_provide"] }
+dilib = { path ="../dilib", features=["full"] }
 casey = "0.3.3"
