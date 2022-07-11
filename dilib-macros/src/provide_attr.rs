@@ -14,7 +14,7 @@ pub struct ProvideAttribute {
     name: Option<String>,
     scope: Scope,
     target: Target,
-    bind: Option<Box<Type>>,
+    bind: Option<Vec<Box<Type>>>,
 }
 
 impl ProvideAttribute {
@@ -53,20 +53,22 @@ impl ProvideAttribute {
             .map(|s| Scope::from_str(&s))
             .unwrap_or(Scope::Scoped);
 
-        let bind = map.remove_entry(keys::BIND).map(|(_, value)| {
-            let type_string = value.to_string_literal().unwrap_or_else(|| {
+        let bind = map.remove_entry(keys::BIND).map(|(_, values)| {
+            let mut types = vec![];
+            for value in values.to_string_literal().unwrap_or_else(|| {
                 panic!(
                     "#[{}] '{}' must be a string literal",
                     keys::PROVIDE,
                     keys::BIND
                 )
-            });
-
-            // We need: Box<dyn TraitType + Send + Sync>
-            let boxed_type = format!("std::boxed::Box<dyn {} + Send + Sync>", type_string);
-
-            syn::parse_str::<Box<Type>>(&boxed_type)
-                .unwrap_or_else(|_| panic!("'{}' is not a valid trait type", type_string))
+            }).split(",") {
+                let type_string = value;
+                // We need: Box<dyn TraitType + Send + Sync>
+                let boxed_type = format!("std::boxed::Box<dyn {} + Send + Sync>", type_string);
+                types.push(syn::parse_str::<Box<Type>>(&boxed_type)
+                    .unwrap_or_else(|_| panic!("'{}' is not a valid trait type", type_string)))
+            }
+            types
         });
 
         // Handle unknowns key-value
@@ -86,42 +88,50 @@ impl ProvideAttribute {
         let name = self.name;
         let scope = self.scope;
         let target = self.target;
-        let bind = self.bind.as_deref();
+        let bind = self.bind;
         let ty = target.target_type();
-
-        let key = get_injection_key(bind.unwrap_or(&ty), name.as_deref());
-
-        // We need a return type for the function
-        if let Target::Fn(item_fn) = &target {
-            if item_fn.sig.output == ReturnType::Default {
-                panic!("function {} must have a return type", item_fn.sig.ident);
-            }
-        }
-
-        let provider = match &target {
-            Target::Fn(item_fn) => match scope {
-                Scope::Scoped => {
-                    if item_fn.sig.inputs.is_empty() {
-                        get_scoped_provider(item_fn, bind)
-                    } else {
-                        get_resolved_scoped_provider(item_fn, &ty, bind)
-                    }
-                }
-                Scope::Singleton => {
-                    if item_fn.sig.inputs.is_empty() {
-                        get_singleton_provider(item_fn, bind)
-                    } else {
-                        get_resolved_singleton_provider(item_fn, &ty, bind)
-                    }
-                }
-            },
-            Target::Struct(item_struct) => match scope {
-                Scope::Scoped => get_inject_provider(item_struct, bind),
-                Scope::Singleton => get_singleton_inject_provider(item_struct, bind),
-            },
+        let mut result_code = quote! {
+            #target
         };
 
-        let add_provider = quote! {
+        let bind_types = bind.clone().unwrap_or(vec![ty.clone()]);
+
+        for bind_type in bind_types {
+            let key = get_injection_key(&bind_type, name.as_deref());
+            let local_bind = bind.clone().map(|_| bind_type);
+            let local_bind = local_bind.as_deref();
+
+            // We need a return type for the function
+            if let Target::Fn(item_fn) = &target {
+                if item_fn.sig.output == ReturnType::Default {
+                    panic!("function {} must have a return type", item_fn.sig.ident);
+                }
+            }
+
+            let provider = match &target {
+                Target::Fn(item_fn) => match scope {
+                    Scope::Scoped => {
+                        if item_fn.sig.inputs.is_empty() {
+                            get_scoped_provider(item_fn, local_bind)
+                        } else {
+                            get_resolved_scoped_provider(item_fn, &ty, local_bind)
+                        }
+                    }
+                    Scope::Singleton => {
+                        if item_fn.sig.inputs.is_empty() {
+                            get_singleton_provider(item_fn, local_bind)
+                        } else {
+                            get_resolved_singleton_provider(item_fn, &ty, local_bind)
+                        }
+                    }
+                },
+                Target::Struct(item_struct) => match scope {
+                    Scope::Scoped => get_inject_provider(item_struct, local_bind),
+                    Scope::Singleton => get_singleton_inject_provider(item_struct, local_bind),
+                },
+            };
+
+            let add_provider = quote! {
             let mut lock = dilib::global::PROVIDERS.lock().expect("unable to get providers lock");
             let providers = lock.as_mut().expect("unable to get providers");
 
@@ -131,9 +141,9 @@ impl ProvideAttribute {
             });
         };
 
-        let ctor_name = generate_fn_name(&ty, &target);
+            let ctor_name = generate_fn_name(&ty, &target);
 
-        quote! {
+            result_code = quote! {
             // We hide the generated function
             const _: () = {
                 #[cold]
@@ -147,8 +157,10 @@ impl ProvideAttribute {
             };
 
             // Let the rest of the code the same
-            #target
+            #result_code
         }
+        }
+        result_code
     }
 }
 
