@@ -5,6 +5,6 @@ error[E0599]: no function or associated item named `new` found for struct `MyStr
   |          ^^^^^^ function or associated item not found in `MyStruct`
 4 | #[inject(constructor="new(a, b)")]
 5 | struct MyStruct {
-  | --------------- function or associated item `new` not found for this
+  | --------------- function or associated item `new` not found for this struct
   |
   = note: this error originates in the derive macro `Inject` (in Nightly builds, run with -Z macro-backtrace for more info)

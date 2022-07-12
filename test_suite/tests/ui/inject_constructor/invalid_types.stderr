@@ -4,8 +4,8 @@ error[E0308]: arguments to this function are incorrect
 3  | #[derive(Inject)]
    |          ^^^^^^
    |          |
-   |          expected `i32`,found `String`
-   |          expected `String`,found `i32`
+   |          expected `i32`, found `String`
+   |          expected `String`, found `i32`
    |
 note: associated function defined here
   --> tests/ui/inject_constructor/invalid_types.rs:11:12

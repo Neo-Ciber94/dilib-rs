@@ -12,5 +12,5 @@ note: associated function defined here
    = note: this error originates in the derive macro `Inject` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: provide the argument
    |
-3  | #[derive(Inject(Inject, Inject, {bool}))]
-   |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+3  | #[derive(Inject(Inject, Inject, /* bool */))]
+   |          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
