@@ -55,13 +55,14 @@ impl ProvideAttribute {
 
         let bind = map.remove_entry(keys::BIND).map(|(_, values)| {
             let mut types = vec![];
-            for value in values.to_string_literal().unwrap_or_else(|| {
+            let bind_values_str = values.to_string_literal().unwrap_or_else(|| {
                 panic!(
                     "#[{}] '{}' must be a string literal",
                     keys::PROVIDE,
                     keys::BIND
                 )
-            }).split(",") {
+            });
+            for value in bind_values_str.split(",") {
                 let type_string = value;
                 // We need: Box<dyn TraitType + Send + Sync>
                 let boxed_type = format!("std::boxed::Box<dyn {} + Send + Sync>", type_string);
@@ -144,21 +145,21 @@ impl ProvideAttribute {
             let ctor_name = generate_fn_name(&ty, &target);
 
             result_code = quote! {
-            // We hide the generated function
-            const _: () = {
-                #[cold]
-                #[doc(hidden)]
-                #[allow(non_snake_case)]
-                #[allow(dead_code)]
-                #[dilib::ctor]
-                fn #ctor_name() {
-                    #add_provider
-                }
-            };
+                // We hide the generated function
+                const _: () = {
+                    #[cold]
+                    #[doc(hidden)]
+                    #[allow(non_snake_case)]
+                    #[allow(dead_code)]
+                    #[dilib::ctor]
+                    fn #ctor_name() {
+                        #add_provider
+                    }
+                };
 
-            // Let the rest of the code the same
-            #result_code
-        }
+                // Let the rest of the code the same
+                #result_code
+            }
         }
         result_code
     }
