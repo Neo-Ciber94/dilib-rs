@@ -5,3 +5,8 @@ use std::fmt::Display;
 fn get_singleton_trait() -> String {
     "hola".to_string()
 }
+
+#[provide(bind="Display,Debug")]
+fn get_multiple_singleton_trait() -> String {
+    "hola".to_string()
+}
