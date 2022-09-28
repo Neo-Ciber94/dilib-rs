@@ -121,7 +121,7 @@ macro_rules! add_scoped_trait {
         })
     }};
 
-     ($container:ident,  $name:literal,, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
+    ($container:ident, $name:literal, $trait_type:ident $(<$($generic:ident),+>)? @ $inject_type:ty) => {{
         $container.add_deps_fn_with_name($name, |container| -> std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> {
             let ret: std::boxed::Box<dyn $trait_type $(<$($generic),+>)? + Send + Sync + 'static> = {
                 let value = <$inject_type>::inject(container);
