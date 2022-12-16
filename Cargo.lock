@@ -999,9 +999,12 @@ dependencies = [
 [[package]]
 name = "local"
 version = "0.1.0"
+<<<<<<< HEAD
 dependencies = [
  "dilib 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+=======
+>>>>>>> d98d40c8fbfbad96cbd740b21ec4ef9430d4c70d
 
 [[package]]
 name = "local-channel"
