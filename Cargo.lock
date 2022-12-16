@@ -577,7 +577,7 @@ name = "derive"
 version = "0.1.0"
 dependencies = [
  "colored",
- "dilib",
+ "dilib 0.2.0",
 ]
 
 [[package]]
@@ -615,9 +615,21 @@ version = "0.2.0"
 dependencies = [
  "criterion",
  "ctor",
- "dilib",
- "dilib-derive",
- "dilib-macros",
+ "dilib 0.2.0",
+ "dilib-derive 0.2.0",
+ "dilib-macros 0.2.0",
+ "once_cell",
+]
+
+[[package]]
+name = "dilib"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6095dcb00978b1f8f8fce79ab49a186b621e2c8f2f61081daa0cc5a1d064d73"
+dependencies = [
+ "ctor",
+ "dilib-derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dilib-macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
 ]
 
@@ -625,7 +637,19 @@ dependencies = [
 name = "dilib-derive"
 version = "0.2.0"
 dependencies = [
- "dilib",
+ "dilib 0.2.0",
+ "mattro",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "dilib-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e9216b49405ad8af71fa297ad45a1f12c4a53b4956e1312650b866478bde1e2"
+dependencies = [
  "mattro",
  "proc-macro2",
  "quote",
@@ -637,7 +661,7 @@ name = "dilib-experimental"
 version = "0.0.0"
 dependencies = [
  "casey",
- "dilib",
+ "dilib 0.2.0",
 ]
 
 [[package]]
@@ -645,7 +669,20 @@ name = "dilib-macros"
 version = "0.2.0"
 dependencies = [
  "const_format",
- "dilib",
+ "dilib 0.2.0",
+ "mattro",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "dilib-macros"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "faefe6da6e4b8976380f9768fc0cf1c160ef792dd3cd8a2cf7c9a9c6afacd707"
+dependencies = [
+ "const_format",
  "mattro",
  "proc-macro2",
  "quote",
@@ -825,7 +862,7 @@ checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
 name = "hello_world"
 version = "0.1.0"
 dependencies = [
- "dilib",
+ "dilib 0.2.0",
 ]
 
 [[package]]
@@ -957,6 +994,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47186c6da4d81ca383c7c47c1bfc80f4b95f4720514d860a5407aaf4233f9588"
 dependencies = [
  "linked-hash-map",
+]
+
+[[package]]
+name = "local"
+version = "0.1.0"
+dependencies = [
+ "dilib 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1234,7 +1278,7 @@ name = "provide"
 version = "0.1.0"
 dependencies = [
  "colored",
- "dilib",
+ "dilib 0.2.0",
 ]
 
 [[package]]
@@ -1487,7 +1531,7 @@ dependencies = [
 name = "test_suite"
 version = "0.0.0"
 dependencies = [
- "dilib",
+ "dilib 0.2.0",
  "macrotest",
  "trybuild",
 ]
@@ -1812,7 +1856,7 @@ dependencies = [
  "actix-web",
  "async-trait",
  "chrono",
- "dilib",
+ "dilib 0.2.0",
  "env_logger",
  "futures-util",
  "lazy_static",
