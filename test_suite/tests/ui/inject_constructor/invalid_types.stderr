@@ -16,4 +16,4 @@ note: associated function defined here
 help: swap these arguments
    |
 3  | #[derive(Inject(Inject, Inject))]
-   |          ~~~~~~~~~~~~~~~~~~~~~~
+   |                ++++++++++++++++

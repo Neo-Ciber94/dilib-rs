@@ -4,7 +4,7 @@ error[E0277]: the trait bound `MyStruct: Default` is not satisfied
 3 | #[provide]
   | ^^^^^^^^^^ the trait `Default` is not implemented for `MyStruct`
   |
-  = note: required because of the requirements on the impl of `Inject` for `MyStruct`
+  = note: required for `MyStruct` to implement `Inject`
   = note: this error originates in the attribute macro `provide` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: consider annotating `MyStruct` with `#[derive(Default)]`
   |
