@@ -1,6 +1,6 @@
 use crate::repositories::Entity;
 use actix_web::http::Method;
-use chrono::{DateTime, Utc, MIN_DATETIME};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use uuid::Uuid;
@@ -119,7 +119,7 @@ impl AuditLogBuilder {
                 ip: None,
                 duration_ms: 0,
                 user_agent: None,
-                created_at: MIN_DATETIME,
+                created_at: DateTime::<Utc>::MIN_UTC,
             },
         }
     }
