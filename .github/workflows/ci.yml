@@ -11,7 +11,7 @@ env:
 
   # workaround for different results compared with local
   TRYBUILD: overwrite
-  MACROEXPAND: overwrite
+  MACROTEST: overwrite
 
 jobs:
   tests:
