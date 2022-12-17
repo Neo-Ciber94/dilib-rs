@@ -9,6 +9,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+  # workaround for different results compared with local
+  TRYBUILD: overwrite
+  MACROEXPAND: overwrite
+
 jobs:
   tests:
     name: Unit Tests
@@ -28,7 +32,7 @@ jobs:
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
 
-  winsows:
+  windows:
     name: Test Suite (Windows)
     runs-on: windows-latest
     steps:
