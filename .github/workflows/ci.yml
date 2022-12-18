@@ -8,8 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  TRYBUILD: overwrite
-  MACROTEST: overwrite
 
 jobs:
   tests:
@@ -26,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo install cargo-expand --verbose
+      - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
 
@@ -36,6 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo install cargo-expand --verbose
+      - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
