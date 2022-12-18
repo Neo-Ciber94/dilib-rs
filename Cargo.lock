@@ -1131,14 +1131,16 @@ dependencies = [
 
 [[package]]
 name = "macrotest"
-version = "1.0.0"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d5ea82aca981e975fcfb30d9d0daf3a29a8c9c60badc388aadaa349bbe745a9"
+checksum = "7489ae0986ce45414b7b3122c2e316661343ecf396b206e3e15f07c846616f10"
 dependencies = [
  "diff",
  "glob",
+ "prettyplease",
  "serde",
  "serde_json",
+ "syn",
  "toml",
 ]
 
@@ -1317,6 +1319,16 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
+
+[[package]]
+name = "prettyplease"
+version = "0.1.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c8992a85d8e93a28bdf76137db888d3874e3b230dee5ed8bebac4c9f7617773"
+dependencies = [
+ "proc-macro2",
+ "syn",
+]
 
 [[package]]
 name = "proc-macro2"
@@ -1746,14 +1758,15 @@ dependencies = [
 
 [[package]]
 name = "trybuild"
-version = "1.0.49"
+version = "1.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11b533b653278ed89f93da2508e324ce9c7ef4af686521ebe4e6516fc9f3fd8d"
+checksum = "73eed6b6ca6cc8a32ee81f4f8828b726bfaef43e8932e1dc14ad00530471965d"
 dependencies = [
  "dissimilar",
  "glob",
- "lazy_static",
+ "once_cell",
  "serde",
+ "serde_derive",
  "serde_json",
  "termcolor",
  "toml",
