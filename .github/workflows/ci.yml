@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
 
@@ -33,5 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
