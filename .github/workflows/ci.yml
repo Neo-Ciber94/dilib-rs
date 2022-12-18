@@ -8,8 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-
-  # workaround for different results compared with local
   TRYBUILD: overwrite
   MACROTEST: overwrite
 
