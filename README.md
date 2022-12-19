@@ -22,7 +22,7 @@ A dependency injection library for Rust.
 ## Usage
 ```toml
 [dependencies]
-dilib = "0.2.0"
+dilib = "0.2.1"
 ```
 
 ## Example
