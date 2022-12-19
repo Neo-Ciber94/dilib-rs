@@ -27,6 +27,9 @@ jobs:
       - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
+        env:
+          TRYBUILD: overwrite
+          MACROTEST: overwrite
 
   windows:
     name: Test Suite (Windows)
@@ -37,3 +40,6 @@ jobs:
       - uses: dtolnay/install@cargo-expand
       - run: cd test_suite && cargo build --all-features --verbose
       - run: cd test_suite && cargo test --all-features --verbose
+        env:
+          TRYBUILD: overwrite
+          MACROTEST: overwrite
